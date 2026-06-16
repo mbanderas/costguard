@@ -1,0 +1,37 @@
+{
+  "name": "costguard",
+  "version": "0.1.0",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "costguard": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --quiet",
+    "dev": "tsx src/cli/index.ts"
+  },
+  "dependencies": {
+    "commander": "^12",
+    "cron-parser": "^4",
+    "js-yaml": "^4",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@types/js-yaml": "^4",
+    "@types/node": "^22",
+    "eslint": "^9",
+    "tsx": "^4",
+    "typescript": "^5",
+    "typescript-eslint": "^8",
+    "vitest": "^2"
+  }
+}

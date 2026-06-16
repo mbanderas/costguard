@@ -1,0 +1,71 @@
+# HARNESS-MUTATION DISCLOSURE
+# Component: .github/workflows/rls.yml + root rls:check script.
+# Targeted failure mode: RLS-policy regressions currently ship UNGUARDED
+#   (the __rls__ suite only runs against a live stack a developer manually
+#   starts; nothing in CI catches a broken policy).
+# Predicted improvement: once Actions billing is on, every PR runs the RLS
+#   suite against an ephemeral stack, catching policy regressions pre-merge.
+# Falsifying check (DEFERRED — cannot run now): break a known policy on a
+#   branch and confirm the job fails red.
+# Rollback path: delete .github/workflows/rls.yml and the rls:check script;
+#   no runtime/app code depends on either.
+#
+# STATUS: INERT / UNVALIDATED
+# GitHub Actions billing is currently OFF. This workflow will not execute.
+# It is authored now so it is READY when billing is restored.
+#
+# BEFORE ADDING AS A REQUIRED CHECK:
+#   1. Enable Actions billing.
+#   2. Run this workflow on a branch at least once and confirm it goes green.
+#   3. Run the falsifying check above and confirm it goes red.
+#   4. Only then add `rls` to branch-protection required checks in
+#      docs/setup/BRANCH_PROTECTION.json and the GitHub repo settings.
+
+name: RLS integration suite
+
+on:
+  # Manual trigger ONLY. Intentionally NOT wired to pull_request: this job is
+  # INERT/UNVALIDATED (Actions billing is off + the falsifying check is
+  # deferred), so it must not auto-run on PRs and surface unvalidated reds.
+  # Once billing is on and steps 2-3 of the disclosure above pass, add a
+  # pull_request trigger and only then promote it to a required check.
+  workflow_dispatch:
+
+concurrency:
+  group: rls-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  rls:
+    name: rls
+    runs-on: ubuntu-latest
+    env:
+      # assertNotProduction guard — the harness refuses any Supabase URL
+      # containing this ref, even though the stack here is fully local.
+      GAMEFRAME_PROD_PROJECT_REF: pwbijmbobzysolnvzevy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start
+
+      - name: Export test database connection
+        # Reads `supabase status` and maps its output to the SUPABASE_TEST_*
+        # env vars the SPEC-04 harness prefers (testSupabase.ts priority 1).
+        # SUPABASE_TEST_DB_URL is written explicitly so the seed DDL step
+        # (resolveTestDbUrl) never has to guess the Postgres DSN.
+        run: |
+          pnpm exec supabase status -o env | sed -nE '
+            s/^API_URL="?([^"]*)"?$/SUPABASE_TEST_URL=\1/p
+            s/^ANON_KEY="?([^"]*)"?$/SUPABASE_TEST_ANON_KEY=\1/p
+            s/^SERVICE_ROLE_KEY="?([^"]*)"?$/SUPABASE_TEST_SERVICE_ROLE_KEY=\1/p
+            s/^DB_URL="?([^"]*)"?$/SUPABASE_TEST_DB_URL=\1/p
+          ' >> "$GITHUB_ENV"
+
+      - name: RLS integration tests
+        run: pnpm rls:check

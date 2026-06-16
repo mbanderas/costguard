@@ -1,0 +1,24 @@
+name: Staging Deploy
+
+# SPEC-31: observability-only workflow. Netlify + Railway auto-deploy from the
+# develop push via their own webhooks; this workflow runs the full CI gate so
+# a red CI light surfaces alongside the platform deploys. It issues no deploy
+# commands. The re-run of validate-env-parity here exercises live secrets that
+# PRs skip per the SPEC-32 contract.
+
+on:
+  push:
+    branches: [develop]
+
+concurrency:
+  group: deploy-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  smoke:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit

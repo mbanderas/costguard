@@ -1,0 +1,70 @@
+name: Production Deploy
+
+# SPEC-31: production verification + sourcemap upload, gated by a GitHub
+# Environment ('production') with a required reviewer. Netlify + Railway
+# auto-deploy from the main push via their own webhooks; this workflow is
+# the audit trail plus the SPEC-30 sourcemap upload step. The operator-side
+# 'yes' gate in scripts/deploy-production.{sh,ps1} and the reviewer's Approve
+# click in the GitHub UI are the two gates.
+
+on:
+  push:
+    branches: [main]
+    # Docs/markdown-only merges don't change the deployed artifacts, so skip
+    # the deploy audit + sourcemap upload (and the smoke -> ci.yml run it calls).
+    # Netlify/Railway still redeploy via their own git webhooks if needed.
+    paths-ignore: ['**.md', 'docs/**']
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  smoke:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  approve-and-upload-sourcemaps:
+    name: approve-and-upload-sourcemaps
+    needs: [smoke]
+    environment:
+      name: production
+      url: 'https://getgameframe.com'
+    runs-on: ubuntu-latest
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      RELEASE: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Build backend with sourcemaps
+        run: pnpm --filter @gameframe/backend build
+
+      - name: Upload backend sourcemaps to Sentry
+        if: ${{ env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' }}
+        env:
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT_BACKEND }}
+        run: |
+          npx @sentry/cli sourcemaps inject apps/backend/dist
+          npx @sentry/cli sourcemaps upload \
+            --org "$SENTRY_ORG" \
+            --project "$SENTRY_PROJECT" \
+            --release "$RELEASE" \
+            apps/backend/dist
+
+      - name: Build frontend app with sourcemaps
+        env:
+          VITE_GIT_COMMIT_SHA: ${{ github.sha }}
+          SENTRY_PROJECT_FRONTEND_APP: ${{ secrets.SENTRY_PROJECT_FRONTEND_APP }}
+        run: pnpm --filter @gameframe/app build
+
+      - name: Build marketing site with sourcemaps
+        env:
+          SENTRY_PROJECT_FRONTEND_WEB: ${{ secrets.SENTRY_PROJECT_FRONTEND_WEB }}
+        run: pnpm --filter @gameframe/web build

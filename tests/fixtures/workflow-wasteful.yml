@@ -1,0 +1,51 @@
+name: CI Wasteful
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '*/5 * * * *'
+
+jobs:
+  job-a:
+    name: job-a
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: pnpm install
+      - run: pnpm typecheck
+      - run: pnpm lint
+
+  job-b:
+    name: job-b
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: pnpm install
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  job-c:
+    name: job-c
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: pnpm install
+      - run: pnpm typecheck
+      - run: pnpm build
+
+  matrix-job:
+    name: matrix-job
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --version

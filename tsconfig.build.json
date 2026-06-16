@@ -1,0 +1,12 @@
+{
+  // Build-only config: emits the dist/ layout the package.json `bin` expects
+  // (rootDir "src" -> dist/cli/index.js). Typecheck coverage of tests/ lives
+  // in tsconfig.json, which the `typecheck` script uses.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"]
+}

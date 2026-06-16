@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  # Direct push runs are intentionally absent: ci.yml is invoked once on the
+  # main push via deploy-production.yml's `smoke` job (workflow_call), so a
+  # push trigger here would double every main run. PRs run it directly.
+  # `develop` was retired (last activity 2026-05); drop it from the matrix.
+  pull_request:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  setup:
+    name: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+  # Consolidated lightweight gate: one checkout + one ./.github/actions/setup,
+  # then every fast validator / lint / typecheck as sequential steps. Folds the
+  # former typecheck, lint, validate-error-codes, lint-design-tokens,
+  # validate-migrations, validate-todos and validate-env-parity jobs into one,
+  # eliminating ~7x redundant checkout+install and per-job 1-minute billing.
+  checks:
+    name: checks
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: typecheck
+        run: pnpm typecheck
+      - name: lint
+        run: pnpm lint
+      - name: validate-error-codes
+        run: node scripts/validate-error-codes.js
+      # SPEC-37 Specialist E: hardcoded color / font-family inventory. Allowed
+      # to flag legitimate offenders until SPEC-37 remediation lands -> the step
+      # is non-blocking (continue-on-error) just as the former job was.
+      - name: lint-design-tokens
+        continue-on-error: true
+        run: pnpm lint:design-tokens
+      # CUT-1: unique, well-formed migration filenames.
+      - name: validate-migrations
+        run: node scripts/validate-migrations.js
+      # CUT-2: no TODO comments admitting missing functionality in app source.
+      - name: validate-todos
+        run: node scripts/validate-todos.js
+      # SPEC-05 Railway/Netlify env parity. Only meaningful on the deploy (push)
+      # path where the secrets exist; skipped on pull_request runs. Inside a
+      # workflow_call from deploy-production, github.event_name is the caller's
+      # 'push', so this still runs on the main deploy.
+      - name: validate-env-parity
+        if: github.event_name == 'push'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: node scripts/validate-env-parity.js
+
+  test:
+    name: test
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # Per-package tests minus suites that need a live Supabase database.
+      # Those run in the dedicated `tagged-rls` job below against a local
+      # `supabase start` stack. parity-perm-E6 is a live-DB integration
+      # test whose env-presence skip guard is fooled by sibling tests that
+      # set dummy SUPABASE_* env — exclude it here, run it in tagged-rls.
+      - run: pnpm --filter @gameframe/types test
+      - run: pnpm --filter @gameframe/design test
+      - run: pnpm --filter @gameframe/email-templates test
+      - run: pnpm --filter @gameframe/ui test
+      # SPEC-22: per-primitive bundle-size budgets (.size-limit.json).
+      - run: pnpm --filter @gameframe/ui size-check
+      - run: pnpm --filter @gameframe/app test
+      - run: pnpm --filter @gameframe/web test
+      - run: pnpm --filter @gameframe/backend test -- --exclude 'src/__rls__/**' --exclude 'test/integration/rls-*.test.ts' --exclude 'test/integration/parity-perm-E6-contractor-expiry.test.ts' --exclude 'src/lib/__tests__/db.rls.test.ts' --exclude 'test/helpers/asUser.test.ts'
+      - run: pnpm test:scripts
+
+  no-source-maps-in-prod:
+    name: no-source-maps-in-prod
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: bash scripts/build-composed.sh
+      - name: Assert no source maps in published frontend
+        run: |
+          if find apps/web/dist -name "*.map" -type f | grep -q .; then
+            echo "Source maps must not be published to production frontend:" >&2
+            find apps/web/dist -name "*.map" -type f >&2
+            exit 1
+          fi
+
+  # Full RLS / data-access integration suite. Runs against an ephemeral
+  # local Supabase stack (`supabase start`) brought up on the runner —
+  # no shared cloud test project, no secrets. The job name is kept as
+  # `tagged-rls` because branch protection lists it as a required check.
+  tagged-rls:
+    name: tagged-rls
+    needs: [setup]
+    runs-on: ubuntu-latest
+    env:
+      # assertNotProduction guard — the harness refuses any Supabase URL
+      # containing this ref, even though the stack here is local.
+      GAMEFRAME_PROD_PROJECT_REF: pwbijmbobzysolnvzevy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start
+      - name: Export test database connection
+        run: |
+          pnpm exec supabase status -o env | sed -nE '
+            s/^API_URL="?([^"]*)"?$/SUPABASE_TEST_URL=\1/p
+            s/^ANON_KEY="?([^"]*)"?$/SUPABASE_TEST_ANON_KEY=\1/p
+            s/^SERVICE_ROLE_KEY="?([^"]*)"?$/SUPABASE_TEST_SERVICE_ROLE_KEY=\1/p
+            s/^DB_URL="?([^"]*)"?$/SUPABASE_TEST_DB_URL=\1/p
+          ' >> "$GITHUB_ENV"
+      - name: RLS integration tests
+        run: pnpm --filter @gameframe/backend test:integration
+
+  # Pending SPEC-04 follow-up: Playwright config + pnpm test:e2e script. Activate by
+  # replacing `if: ${{ false }}` with the canonical SPEC-31 path-filter once
+  # @gameframe/app and @gameframe/backend ship Playwright tests. The full path-filter
+  # and activation example live in docs/setup/CI_CD.md under "Deferred items".
+  e2e:
+    name: e2e
+    needs: [setup, no-source-maps-in-prod]
+    runs-on: ubuntu-latest
+    if: ${{ false }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm exec playwright install --with-deps chromium firefox
+      - run: pnpm test:e2e
