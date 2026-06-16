@@ -1,0 +1,6 @@
+{
+  "branches": [
+    { "id": "b1", "name": "main", "default": true },
+    { "id": "b2", "name": "preview-x", "default": false }
+  ]
+}

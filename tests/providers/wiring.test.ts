@@ -4,7 +4,7 @@ import {
   runAudit,
   resolveSelection,
 } from "../../src/orchestrator.js";
-import { enabledProviderIds } from "../../src/providers/registry.js";
+import { enabledProviderIds, PROVIDER_MODULES } from "../../src/providers/registry.js";
 import { makeFixtureFetcher } from "../../src/providers/fetcher.js";
 import { DEFAULT_CONFIG } from "../../src/config.js";
 import type { WorkspaceRegistry } from "../../src/registry/schema.js";
@@ -155,5 +155,28 @@ describe("enabledProviderIds", () => {
       { GITHUB_TOKEN: "x", SUPABASE_ACCESS_TOKEN: "y" },
     );
     expect(result).toEqual(["github", "supabase"]);
+  });
+
+  it("registers all five providers (github, supabase, railway, netlify, neon)", () => {
+    expect(Object.keys(PROVIDER_MODULES).sort()).toEqual([
+      "github",
+      "neon",
+      "netlify",
+      "railway",
+      "supabase",
+    ]);
+  });
+
+  it("enables railway/netlify/neon when their tokens are present and declared", () => {
+    const result = enabledProviderIds(
+      "all",
+      ["railway", "netlify", "neon"],
+      {
+        RAILWAY_TOKEN: "r",
+        NETLIFY_AUTH_TOKEN: "n",
+        NEON_API_KEY: "e",
+      },
+    );
+    expect(result).toEqual(["neon", "netlify", "railway"]);
   });
 });

@@ -1,0 +1,4 @@
+[
+  { "id": "s1", "name": "mysite", "account_slug": "team1" },
+  { "id": "s2", "name": "old-demo", "account_slug": "team1" }
+]

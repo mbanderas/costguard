@@ -1,0 +1,6 @@
+{
+  "projects": [
+    { "id": "decl1", "name": "app-db" },
+    { "id": "orph9", "name": "ghost-db" }
+  ]
+}

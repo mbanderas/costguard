@@ -16,6 +16,18 @@ export interface CostguardDefaults {
   supabaseComputePricingMonthly: Record<string, number>; // monthly USD by instance size
   supabasePitrAddonMonthly: number; // default 100
   supabasePreviewBranchMonthly: number; // default 3.90
+  // Railway
+  railwayBaseMonthly: number; // default 5
+  railwayServiceHourlyRate: number; // default 0.000463
+  // Netlify
+  netlifyFreeBuildMinutesPerMonth: number; // default 300
+  netlifyBuildMinuteOverageRate: number; // default 0.007
+  netlifyFreeBandwidthGb: number; // default 100
+  netlifyBandwidthOverageRatePerGb: number; // default 0.20
+  // Neon
+  neonFreeComputeHoursPerMonth: number; // default 191.9
+  neonComputeHourlyRate: number; // default 0.16
+  neonBranchComputeMonthly: number; // default 1.60
 }
 
 export interface WorkspaceOverrides {
@@ -92,6 +104,15 @@ export const DEFAULT_CONFIG: CostguardConfig = {
     },
     supabasePitrAddonMonthly: 100,
     supabasePreviewBranchMonthly: 3.90,
+    railwayBaseMonthly: 5,
+    railwayServiceHourlyRate: 0.000463,
+    netlifyFreeBuildMinutesPerMonth: 300,
+    netlifyBuildMinuteOverageRate: 0.007,
+    netlifyFreeBandwidthGb: 100,
+    netlifyBandwidthOverageRatePerGb: 0.20,
+    neonFreeComputeHoursPerMonth: 191.9,
+    neonComputeHourlyRate: 0.16,
+    neonBranchComputeMonthly: 1.60,
   },
   perWorkspace: {},
 };
@@ -113,6 +134,15 @@ const CostguardDefaultsSchema = z.object({
   supabaseComputePricingMonthly: z.record(z.string(), z.number().nonnegative()).optional(),
   supabasePitrAddonMonthly: z.number().nonnegative().optional(),
   supabasePreviewBranchMonthly: z.number().nonnegative().optional(),
+  railwayBaseMonthly: z.number().nonnegative().optional(),
+  railwayServiceHourlyRate: z.number().nonnegative().optional(),
+  netlifyFreeBuildMinutesPerMonth: z.number().nonnegative().optional(),
+  netlifyBuildMinuteOverageRate: z.number().nonnegative().optional(),
+  netlifyFreeBandwidthGb: z.number().nonnegative().optional(),
+  netlifyBandwidthOverageRatePerGb: z.number().nonnegative().optional(),
+  neonFreeComputeHoursPerMonth: z.number().nonnegative().optional(),
+  neonComputeHourlyRate: z.number().nonnegative().optional(),
+  neonBranchComputeMonthly: z.number().nonnegative().optional(),
 });
 
 const CostguardConfigFileSchema = z.object({
@@ -175,6 +205,24 @@ function deepMergeConfig(
         override.defaults?.supabasePitrAddonMonthly ?? base.defaults.supabasePitrAddonMonthly,
       supabasePreviewBranchMonthly:
         override.defaults?.supabasePreviewBranchMonthly ?? base.defaults.supabasePreviewBranchMonthly,
+      railwayBaseMonthly:
+        override.defaults?.railwayBaseMonthly ?? base.defaults.railwayBaseMonthly,
+      railwayServiceHourlyRate:
+        override.defaults?.railwayServiceHourlyRate ?? base.defaults.railwayServiceHourlyRate,
+      netlifyFreeBuildMinutesPerMonth:
+        override.defaults?.netlifyFreeBuildMinutesPerMonth ?? base.defaults.netlifyFreeBuildMinutesPerMonth,
+      netlifyBuildMinuteOverageRate:
+        override.defaults?.netlifyBuildMinuteOverageRate ?? base.defaults.netlifyBuildMinuteOverageRate,
+      netlifyFreeBandwidthGb:
+        override.defaults?.netlifyFreeBandwidthGb ?? base.defaults.netlifyFreeBandwidthGb,
+      netlifyBandwidthOverageRatePerGb:
+        override.defaults?.netlifyBandwidthOverageRatePerGb ?? base.defaults.netlifyBandwidthOverageRatePerGb,
+      neonFreeComputeHoursPerMonth:
+        override.defaults?.neonFreeComputeHoursPerMonth ?? base.defaults.neonFreeComputeHoursPerMonth,
+      neonComputeHourlyRate:
+        override.defaults?.neonComputeHourlyRate ?? base.defaults.neonComputeHourlyRate,
+      neonBranchComputeMonthly:
+        override.defaults?.neonBranchComputeMonthly ?? base.defaults.neonBranchComputeMonthly,
     },
     perWorkspace: buildPerWorkspace(base.perWorkspace, override.perWorkspace),
   };

@@ -1,0 +1,14 @@
+{
+  "me": {
+    "projects": {
+      "edges": [
+        {
+          "node": {
+            "id": "proj1",
+            "name": "web-app"
+          }
+        }
+      ]
+    }
+  }
+}

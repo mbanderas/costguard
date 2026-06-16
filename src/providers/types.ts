@@ -3,6 +3,17 @@ import type { CostguardConfig } from "../config.js";
 import type { WorkspaceEntry } from "../registry/schema.js";
 
 // ------------------------------------------------------------------
+// GraphQL client abstraction (read-only; mutations rejected by guard)
+// ------------------------------------------------------------------
+
+export interface GraphqlClient {
+  query<T = unknown>(
+    document: string,
+    variables?: Record<string, unknown>,
+  ): Promise<T>;
+}
+
+// ------------------------------------------------------------------
 // HTTP abstraction (keeps fetch details out of provider modules)
 // ------------------------------------------------------------------
 

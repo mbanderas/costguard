@@ -1,6 +1,9 @@
 import type { ProviderModule } from "./types.js";
 import { githubModule } from "./github/index.js";
 import { supabaseModule } from "./supabase/index.js";
+import { railwayModule } from "./railway/index.js";
+import { netlifyModule } from "./netlify/index.js";
+import { neonModule } from "./neon/index.js";
 
 // ------------------------------------------------------------------
 // Provider module registry
@@ -9,6 +12,9 @@ import { supabaseModule } from "./supabase/index.js";
 export const PROVIDER_MODULES: Readonly<Record<string, ProviderModule>> = {
   github: githubModule,
   supabase: supabaseModule,
+  railway: railwayModule,
+  netlify: netlifyModule,
+  neon: neonModule,
 };
 
 export function getProviderModule(id: string): ProviderModule | undefined {
