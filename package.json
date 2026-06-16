@@ -21,7 +21,9 @@
   "dependencies": {
     "commander": "^12",
     "cron-parser": "^4",
+    "diff": "^9.0.0",
     "js-yaml": "^4",
+    "yaml": "^2.9.0",
     "zod": "^3"
   },
   "devDependencies": {

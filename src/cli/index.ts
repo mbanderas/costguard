@@ -5,6 +5,7 @@ import { registerScan } from "./commands/scan.js";
 import { registerRegistry } from "./commands/registry.js";
 import { registerReport } from "./commands/report.js";
 import { registerProviders } from "./commands/providersCmd.js";
+import { registerFix } from "./commands/fixCmd.js";
 
 const program = new Command();
 
@@ -20,6 +21,7 @@ registerScan(program);
 registerRegistry(program);
 registerReport(program);
 registerProviders(program);
+registerFix(program);
 
 try {
   await program.parseAsync(process.argv);
