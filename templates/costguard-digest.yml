@@ -1,0 +1,53 @@
+# TEMPLATE — NOT ACTIVE
+# This file lives under templates/ (NOT .github/workflows/) so GitHub never
+# picks it up and runs it automatically.
+#
+# To activate: copy this file into your repository's .github/workflows/ directory.
+#   cp templates/costguard-digest.yml .github/workflows/costguard-digest.yml
+#
+# To rollback / deactivate: delete the copy from .github/workflows/.
+#   rm .github/workflows/costguard-digest.yml
+#
+# Read-only secrets used when --post is enabled:
+#   COSTGUARD_DIGEST_WEBHOOK — the webhook URL to post the digest to.
+#     Add it under Settings > Secrets and variables > Actions in your repo.
+#     The workflow below runs in dry-run (stdout) mode by default; add
+#     --post to the run command and set this secret to enable posting.
+
+name: CostGuard Monthly Digest
+
+on:
+  schedule:
+    # Runs at 09:00 UTC on the 1st of every month.
+    - cron: '0 9 1 * *'
+  # Allow manual runs from the Actions tab.
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  digest:
+    name: monthly-digest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install costguard
+        run: npm install -g costguard
+
+      # Runs a live audit across all registered workspaces and prints the
+      # digest to stdout (dry-run mode — nothing is posted).
+      #
+      # To enable webhook posting:
+      #   1. Add COSTGUARD_DIGEST_WEBHOOK to your repo secrets.
+      #   2. Append --post to the command below.
+      - name: Run CostGuard digest
+        run: costguard digest --all
+        # Uncomment the lines below and add --post above to enable posting:
+        # env:
+        #   COSTGUARD_DIGEST_WEBHOOK: ${{ secrets.COSTGUARD_DIGEST_WEBHOOK }}
