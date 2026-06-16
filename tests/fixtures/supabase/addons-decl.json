@@ -1,0 +1,18 @@
+{
+  "selected_addons": [
+    {
+      "type": "compute_instance",
+      "variant": {
+        "identifier": "ci_small",
+        "name": "Small"
+      }
+    },
+    {
+      "type": "pitr",
+      "variant": {
+        "identifier": "pitr_7days",
+        "name": "7 Days"
+      }
+    }
+  ]
+}

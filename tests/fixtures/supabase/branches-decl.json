@@ -1,0 +1,12 @@
+[
+  {
+    "name": "main",
+    "is_default": true,
+    "git_branch": "main"
+  },
+  {
+    "name": "feature-x",
+    "is_default": false,
+    "git_branch": "feature-x"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "ref": "decl1111",
+    "name": "Declared Project",
+    "status": "ACTIVE_HEALTHY"
+  },
+  {
+    "ref": "orph2222",
+    "name": "Orphan Project",
+    "status": "ACTIVE_HEALTHY"
+  }
+]

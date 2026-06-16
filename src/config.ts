@@ -12,6 +12,10 @@ export interface CostguardDefaults {
   ciMinuteRate: number; // default 0.008 (USD/min, GitHub-hosted Linux)
   assumedPushesPerDay: number; // default 10 (for inferable CI cadence)
   assumedMinutesPerRun: number; // default 5  (avg wasted minutes per redundant run)
+  githubFreeMinutesPerMonth: number; // default 2000
+  supabaseComputePricingMonthly: Record<string, number>; // monthly USD by instance size
+  supabasePitrAddonMonthly: number; // default 100
+  supabasePreviewBranchMonthly: number; // default 3.90
 }
 
 export interface WorkspaceOverrides {
@@ -72,6 +76,22 @@ export const DEFAULT_CONFIG: CostguardConfig = {
     ciMinuteRate: 0.008,
     assumedPushesPerDay: 10,
     assumedMinutesPerRun: 5,
+    githubFreeMinutesPerMonth: 2000,
+    supabaseComputePricingMonthly: {
+      nano: 0,
+      micro: 10,
+      small: 25,
+      medium: 50,
+      large: 110,
+      xlarge: 210,
+      "2xlarge": 410,
+      "4xlarge": 960,
+      "8xlarge": 1870,
+      "12xlarge": 2810,
+      "16xlarge": 3730,
+    },
+    supabasePitrAddonMonthly: 100,
+    supabasePreviewBranchMonthly: 3.90,
   },
   perWorkspace: {},
 };
@@ -89,6 +109,10 @@ const CostguardDefaultsSchema = z.object({
   ciMinuteRate: z.number().positive().optional(),
   assumedPushesPerDay: z.number().positive().optional(),
   assumedMinutesPerRun: z.number().positive().optional(),
+  githubFreeMinutesPerMonth: z.number().nonnegative().optional(),
+  supabaseComputePricingMonthly: z.record(z.string(), z.number().nonnegative()).optional(),
+  supabasePitrAddonMonthly: z.number().nonnegative().optional(),
+  supabasePreviewBranchMonthly: z.number().nonnegative().optional(),
 });
 
 const CostguardConfigFileSchema = z.object({
@@ -143,6 +167,14 @@ function deepMergeConfig(
         override.defaults?.assumedPushesPerDay ?? base.defaults.assumedPushesPerDay,
       assumedMinutesPerRun:
         override.defaults?.assumedMinutesPerRun ?? base.defaults.assumedMinutesPerRun,
+      githubFreeMinutesPerMonth:
+        override.defaults?.githubFreeMinutesPerMonth ?? base.defaults.githubFreeMinutesPerMonth,
+      supabaseComputePricingMonthly:
+        override.defaults?.supabaseComputePricingMonthly ?? base.defaults.supabaseComputePricingMonthly,
+      supabasePitrAddonMonthly:
+        override.defaults?.supabasePitrAddonMonthly ?? base.defaults.supabasePitrAddonMonthly,
+      supabasePreviewBranchMonthly:
+        override.defaults?.supabasePreviewBranchMonthly ?? base.defaults.supabasePreviewBranchMonthly,
     },
     perWorkspace: buildPerWorkspace(base.perWorkspace, override.perWorkspace),
   };

@@ -1,20 +1,26 @@
 import path from "node:path";
 import type { Finding } from "./types.js";
 import type { WorkspaceRegistry } from "./registry/schema.js";
+import type { WorkspaceEntry } from "./registry/schema.js";
 import type { CostguardConfig } from "./config.js";
+import type { HttpFetcher } from "./providers/types.js";
 import { resolveWorkspaceConfig } from "./config.js";
 import { resolvedRoot } from "./registry/loader.js";
 import { ciCheck } from "./checks/ci/index.js";
 import { cronCheck } from "./checks/cron/index.js";
+import { makeLiveFetcher } from "./providers/fetcher.js";
+import { enabledProviderIds, getProviderModule } from "./providers/registry.js";
 
 export interface AuditFlags {
   ciOnly: boolean;
   cronsOnly: boolean;
+  providers?: string[] | "all";
 }
 
 export interface SelectedWorkspace {
   workspace: string;
   workspaceDir: string;
+  entry?: WorkspaceEntry;
 }
 
 /**
@@ -30,10 +36,12 @@ export function resolveSelection(
   const root = resolvedRoot(registry);
 
   if (all) {
-    return Object.keys(registry.workspaces).map((name) => ({
-      workspace: name,
-      workspaceDir: path.join(root, name),
-    }));
+    return Object.keys(registry.workspaces).map((name) => {
+      const entry = registry.workspaces[name];
+      const ws: SelectedWorkspace = { workspace: name, workspaceDir: path.join(root, name) };
+      if (entry !== undefined) ws.entry = entry;
+      return ws;
+    });
   }
 
   const missing = names.filter((n) => !(n in registry.workspaces));
@@ -43,10 +51,12 @@ export function resolveSelection(
     );
   }
 
-  return names.map((name) => ({
-    workspace: name,
-    workspaceDir: path.join(root, name),
-  }));
+  return names.map((name) => {
+    const entry = registry.workspaces[name];
+    const ws: SelectedWorkspace = { workspace: name, workspaceDir: path.join(root, name) };
+    if (entry !== undefined) ws.entry = entry;
+    return ws;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -85,11 +95,19 @@ export async function runAudit(args: {
   selection: SelectedWorkspace[];
   config: CostguardConfig;
   flags: AuditFlags;
+  fetcherFactory?: (token: string) => HttpFetcher;
+  env?: NodeJS.ProcessEnv;
 }): Promise<Finding[]> {
-  const { selection, config, flags } = args;
+  const {
+    selection,
+    config,
+    flags,
+    fetcherFactory = makeLiveFetcher,
+    env = process.env,
+  } = args;
   const allFindings: Finding[] = [];
 
-  for (const { workspace, workspaceDir } of selection) {
+  for (const { workspace, workspaceDir, entry } of selection) {
     const resolvedConfig = resolveWorkspaceConfig(config, workspace);
     const ctx = { workspace, workspaceDir, config: resolvedConfig };
 
@@ -108,6 +126,23 @@ export async function runAudit(args: {
         allFindings.push(...found);
       } catch (err) {
         allFindings.push(makeCheckErrorFinding(workspace, "cron", err));
+      }
+    }
+
+    if (flags.providers !== undefined && entry !== undefined) {
+      const ids = enabledProviderIds(flags.providers, entry.providers, env);
+      for (const id of ids) {
+        const mod = getProviderModule(id);
+        if (mod === undefined) continue;
+        const token = mod.resolveToken(env);
+        if (token === undefined) continue;
+        const fetcher = fetcherFactory(token);
+        try {
+          const found = await mod.check({ ctx, entry, fetcher, config });
+          allFindings.push(...found);
+        } catch (err) {
+          allFindings.push(makeCheckErrorFinding(workspace, id, err));
+        }
       }
     }
   }

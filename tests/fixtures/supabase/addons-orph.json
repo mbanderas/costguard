@@ -1,0 +1,11 @@
+{
+  "selected_addons": [
+    {
+      "type": "compute_instance",
+      "variant": {
+        "identifier": "ci_micro",
+        "name": "Micro"
+      }
+    }
+  ]
+}

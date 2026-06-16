@@ -1,0 +1,22 @@
+{
+  "usageItems": [
+    {
+      "product": "Actions",
+      "sku": "ACTIONS_LINUX_4_CORE",
+      "quantity": 3000,
+      "unitType": "minutes",
+      "netAmount": 8.0,
+      "repositoryName": "gameframe-v2",
+      "organizationName": null
+    },
+    {
+      "product": "Actions",
+      "sku": "ACTIONS_LINUX_4_CORE",
+      "quantity": 500,
+      "unitType": "minutes",
+      "netAmount": 4.0,
+      "repositoryName": "old-experiment",
+      "organizationName": null
+    }
+  ]
+}

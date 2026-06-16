@@ -7,6 +7,7 @@ export interface AuditAndReportOptions {
   format?: "markdown" | "json";
 }
 
+
 /**
  * Shared core: resolve, audit, persist, render.
  * Used by both `audit` and `scan` commands.
