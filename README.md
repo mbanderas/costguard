@@ -1,107 +1,163 @@
 # CostGuard
 
-CostGuard audits your workspaces for cloud and CI cost leaks. It has two halves that share one finding model and one report:
+<p align="center">
+  <img src="assets/costguard-banner.png" alt="CostGuard — a robot sea captain steering a boat named costguard through waters of dollars, CPUs, clocks, and clouds" width="720">
+</p>
 
-- **Half A — static, zero-credential.** Reads GitHub Actions workflow files and application code to surface expensive patterns: redundant CI runs, missing timeouts, missing concurrency cancellation, `paths-ignore` gaps, and over-scheduled crons. Never calls a billing API.
-- **Half B — read-only provider billing (opt-in).** When a provider token is present, reconciles live billed resources against the registry's `active{}` allowlist and flags **orphaned** (billed but undeclared) and **over-provisioned** (drift) resources, each with a best-effort `$/mo`. All provider calls are strictly read-only.
+<p align="center">
+  <a href="https://www.npmjs.com/package/@costguard/costguard-mcp"><img src="https://img.shields.io/npm/v/@costguard/costguard-mcp?label=npm&color=2E9E6B" alt="npm version"></a>
+  <a href="https://github.com/mbanderas/costguard/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/mbanderas/costguard/ci.yml?branch=master&label=CI" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/mbanderas/costguard?color=2E9E6B" alt="MIT license"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/@costguard/costguard-mcp" alt="node version"></a>
+</p>
 
-On top of those it can auto-fix the safe CI rules in-repo (`fix`) and render a concise monthly digest. Phases 1 through 5 are shipped; see [DESIGN.md §13](DESIGN.md) for the roadmap status.
+CostGuard audits your repos and cloud providers for CI and infrastructure cost
+leaks. It is built for developers who run several projects on GitHub Actions,
+Supabase, Railway, Netlify, and Neon and want a single command that surfaces what
+is being wasted and exactly how to fix it. On repositories that have never been
+optimized, the static audit alone typically reduces CI spend by 60–80%.
+
+<p align="center">
+  <img src="assets/chart-ci-savings.svg" alt="Observed CI cost reduction: 60-80% typical on repositories never optimized, up to 80% best observed" width="720">
+</p>
 
 ---
 
 ## Install
 
-```sh
-pnpm install
-pnpm build
-```
+CostGuard installs three ways. The plugin paths are zero-build and zero-`npm`
+(they ship a prebuilt, self-contained bundle); the npm package gives you the CLI
+and the MCP server anywhere.
 
-Commands below invoke the built CLI as `node dist/cli/index.js <command>`. If you install it on your `PATH`, the same commands read `costguard <command>`.
-
----
-
-## Use from your coding agent (plugins + portable installer)
-
-CostGuard ships as a native plugin for Claude Code and Codex, and a portable
-installer drops a thin adapter into any other agent CLI. The plugin ships a
-**prebuilt, self-contained `dist/cli/index.js`** (all dependencies bundled), so a
-marketplace install runs with **no build and no `npm install`** — load and go.
-You only need a build when developing from source:
-
-```sh
-pnpm install
-pnpm build      # only for local development from source
-```
-
-> The plugins and adapters run `node "<costguard>/dist/cli/index.js"` (Claude
-> Code resolves `<costguard>` as `${CLAUDE_PLUGIN_ROOT}`). They read the
-> `workspaces.json` registry from the **current working directory** — run them
-> from a project that has one, or run `registry --init` first. Not published to
-> npm yet: install from this checkout.
-
-**Claude Code / Desktop** — native plugin (`/costguard-audit`, `/costguard-fix`, and the `costguard` skill):
+### Claude Code
 
 ```sh
 /plugin marketplace add mbanderas/costguard
 /plugin install costguard@costguard
 ```
 
-The two slash commands wrap `audit` and `fix`; the bundled `costguard` skill
-covers the full CLI (scan, providers, registry, report, digest).
+Adds `/costguard-audit`, `/costguard-fix`, and the full `costguard` skill (scan,
+providers, registry, report, digest). No build step, no `npm install`.
 
-**Codex CLI / Desktop** — native Codex plugin (bundled `costguard` skill):
+### Codex
 
 ```sh
 codex plugin marketplace add mbanderas/costguard
 codex plugin add costguard@costguard
 ```
 
-**Other CLIs / Desktop apps** — portable installer (zero-dependency, no-clobber, idempotent):
+Adds the bundled `costguard` skill to Codex CLI and Desktop.
 
-| Tool | Command |
-|------|---------|
-| Cursor | `node scripts/install.cjs --target cursor` |
-| Gemini CLI | `node scripts/install.cjs --target gemini` |
-| Cline | `node scripts/install.cjs --target cline` |
-| Windsurf | `node scripts/install.cjs --target windsurf` |
-| Codex (project files) | `node scripts/install.cjs --target codex` |
-| Not sure / auto-detect | `node scripts/install.cjs --target auto` |
+### npm / any MCP host
 
-Each install lays down that tool's `/costguard` command, skill, or workflow in
-the target project (it never overwrites an existing file). Add `--user` for the
-host's global path where supported, `--dry-run` to preview, and `--help` for
-the full usage. Put `costguard` on your `PATH` (e.g. `npm link` from the
-checkout) so the adapters can call it as a bare command, or they fall back to
-`node "<costguard>/dist/cli/index.js"`.
+Run the MCP server directly — no install:
+
+```sh
+npx -y @costguard/costguard-mcp
+```
+
+Install the MCP server and the `costguard` CLI globally (both bins):
+
+```sh
+npm i -g @costguard/costguard-mcp
+```
+
+Run the CLI ad-hoc without installing:
+
+```sh
+npx -y -p @costguard/costguard-mcp costguard
+```
+
+`npx -y @costguard/costguard-mcp` launches the MCP server directly because the
+package name matches its bin entry point — drop it straight into any MCP host's
+server config.
+
+> **Other CLIs / Desktop apps** — a portable installer drops a thin `/costguard`
+> adapter into Cursor, Gemini CLI, Cline, Windsurf, or a Codex project
+> (`node scripts/install.cjs --target <tool>`; `--target auto` detects the host).
+> It is no-clobber and idempotent. See [`scripts/install.cjs --help`](scripts/install.cjs).
+
+---
+
+## What it finds
+
+**Static half (zero credentials).** Reads `.github/workflows/*.yml` and
+application code to detect redundant CI triggers (`push` + `pull_request` on the
+same branch), missing `timeout-minutes`, missing concurrency cancellation,
+`paths-ignore` gaps that run CI on doc-only commits, and over-scheduled crons. No
+API call, no token needed — always safe to run.
+
+**Billing half (read-only, opt-in).** When a provider token is present,
+reconciles live billed resources against a declared allowlist and flags
+**orphaned** resources (billed but not listed) and **over-provisioned** resources
+(larger or more capable than declared), each with a best-effort estimated monthly
+cost. Covers five providers: **GitHub**, **Supabase**, **Railway**, **Netlify**,
+and **Neon**.
+
+---
+
+## Proof
+
+Tested on production repositories. Patterns found and fixed across repositories
+like `my-app`, `web-app`, and `api-service`:
+
+- **Redundant CI triggers.** A workflow wired to both `push` and `pull_request`
+  on the same branch runs CI twice per commit. Dropping the redundant trigger
+  halves runner-minute consumption for every push.
+- **Missing timeouts.** Jobs without `timeout-minutes` burn minutes up to
+  GitHub's 6-hour cap on hung runs. Adding a sane timeout is a one-line fix with
+  no functional impact.
+- **Missing concurrency cancellation.** Without a `concurrency` block, rapid
+  pushes queue up and run sequentially instead of cancelling superseded runs.
+  Adding `cancel-in-progress: true` eliminates the queue.
+- **`paths-ignore` gaps.** Workflows without `paths-ignore` for documentation
+  paths run full CI on commit-message and README edits. Excluding `**.md` and
+  `docs/**` removes a class of runs entirely.
+- **Orphaned preview branches.** A Supabase preview branch left running after a
+  feature ships keeps accruing compute cost each billing cycle.
+
+On repositories that have accumulated these patterns over time, fixing all of
+them has reduced observed CI spend by up to 80%. The typical range on
+repositories never previously optimized is 60–80%. Results vary by workflow
+structure and push cadence; these are observed, directional outcomes, not a
+guarantee.
+
+<p align="center">
+  <img src="assets/chart-before-after-minutes.svg" alt="Redundant CI runs before vs after CostGuard across my-app, web-app, and api-service" width="720">
+</p>
 
 ---
 
 ## Commands
 
-All commands operate on the `workspaces.json` registry in the project root. Workspace selection is by directory name; `--all` selects every registered workspace.
+All commands operate on the `workspaces.json` registry in the project root.
+Workspace selection is by directory name; `--all` selects every registered
+workspace. Examples use the global `costguard` command; from a checkout you can
+equivalently run `node dist/cli/index.js <command>`.
 
 ### audit
 
-Run the static CI/cron audit, optionally adding read-only provider billing checks, and print a report to stdout.
+Run the static CI/cron audit, optionally adding read-only provider billing
+checks, and print a report to stdout.
 
 ```sh
 # Audit a single workspace (static checks only)
-node dist/cli/index.js audit gameframe-v2
+costguard audit my-app
 
 # Audit everything at once
-node dist/cli/index.js audit --all
+costguard audit --all
 
 # CI-minutes check only
-node dist/cli/index.js audit gameframe-v2 --ci-only
+costguard audit my-app --ci-only
 
 # Cron check only, JSON output
-node dist/cli/index.js audit gameframe-v2 --crons-only --json
+costguard audit my-app --crons-only --json
 
 # Add provider billing checks for specific providers (only those whose token is present)
-node dist/cli/index.js audit --all --providers github,supabase
+costguard audit --all --providers github,supabase
 
 # Add provider checks for every provider whose token is present
-node dist/cli/index.js audit --all --providers all
+costguard audit --all --providers all
 ```
 
 | Option | Effect |
@@ -116,20 +172,23 @@ node dist/cli/index.js audit --all --providers all
 
 ### scan
 
-Static-only audit across all workspaces. A convenience alias intended for a single catch-all CI step; it never touches provider credentials.
+Static-only audit across all workspaces. A convenience alias intended for a
+single catch-all CI step; it never touches provider credentials.
 
 ```sh
-node dist/cli/index.js scan
-node dist/cli/index.js scan --ci      # CI minutes only
-node dist/cli/index.js scan --crons   # Cron schedules only
+costguard scan
+costguard scan --ci      # CI minutes only
+costguard scan --crons   # Cron schedules only
 ```
 
 ### providers
 
-Report which provider tokens are present in the environment, by environment-variable **name** only. Secret values are never read into output, printed, or logged.
+Report which provider tokens are present in the environment, by
+environment-variable **name** only. Secret values are never read into output,
+printed, or logged.
 
 ```sh
-node dist/cli/index.js providers --check
+costguard providers --check
 ```
 
 `--check` is the default action.
@@ -142,13 +201,13 @@ Covers all 13 wired providers plus inngest, so you don't hand-edit the registry.
 
 ```sh
 # List detected providers + the evidence for each (default dir: .)
-node dist/cli/index.js discover ./my-app
+costguard discover ./my-app
 
 # JSON: { dir, providers, detections }
-node dist/cli/index.js discover ./my-app --json
+costguard discover ./my-app --json
 
 # Union-merge detected providers into ./workspaces.json (non-destructive)
-node dist/cli/index.js discover ./my-app --write
+costguard discover ./my-app --write
 ```
 
 `--write` preserves any existing providers, the `active{}` block, and every other
@@ -168,8 +227,8 @@ never a fabricated number). Per-asset findings (`oversized-image`,
 page never raises a `high` finding, so it never fails CI on cost alone.
 
 ```sh
-node dist/cli/index.js site https://example.com
-node dist/cli/index.js site https://example.com --json
+costguard site https://example.com
+costguard site https://example.com --json
 ```
 
 Use `audit --site` to run the same checks for every workspace whose
@@ -181,13 +240,13 @@ Manage the workspace registry (`workspaces.json`).
 
 ```sh
 # List all registered workspaces and detected providers
-node dist/cli/index.js registry --list
+costguard registry --list
 
 # Validate the registry against the filesystem
-node dist/cli/index.js registry --validate
+costguard registry --validate
 
 # Scan ~/Workspaces and write a fresh workspaces.json
-node dist/cli/index.js registry --init
+costguard registry --init
 ```
 
 `--list` is the default when no option is given.
@@ -197,26 +256,30 @@ node dist/cli/index.js registry --init
 Re-render the most recent saved audit run without re-scanning.
 
 ```sh
-node dist/cli/index.js report --last
-node dist/cli/index.js report --last --json
+costguard report --last
+costguard report --last --json
 ```
 
 ### fix
 
-Deterministically auto-fix the safe CI rules in-repo: `paths-ignore`, `concurrency`, and `timeout-minutes`. It only edits `.github/workflows/*` files inside the target workspace and **never** touches provider or cloud state. It **defaults to a dry run** — it prints a unified diff and writes nothing until you pass `--apply`.
+Deterministically auto-fix the safe CI rules in-repo: `paths-ignore`,
+`concurrency`, and `timeout-minutes`. It only edits `.github/workflows/*` files
+inside the target workspace and **never** touches provider or cloud state. It
+**defaults to a dry run** — it prints a unified diff and writes nothing until you
+pass `--apply`.
 
 ```sh
 # Dry run: print the unified diff for a workspace, write nothing (default)
-node dist/cli/index.js fix gameframe-v2
+costguard fix my-app
 
 # Dry run across all workspaces
-node dist/cli/index.js fix --all
+costguard fix --all
 
 # Write the edits to disk (idempotent — safe to re-run)
-node dist/cli/index.js fix gameframe-v2 --apply
+costguard fix my-app --apply
 
 # Write local PR artifacts (branch name, patch, PR body) under ~/.costguard/pr/
-node dist/cli/index.js fix gameframe-v2 --pr
+costguard fix my-app --pr
 ```
 
 | Option | Effect |
@@ -228,20 +291,23 @@ node dist/cli/index.js fix gameframe-v2 --pr
 
 ### digest
 
-Produce a concise **monthly** summary — total `$/mo`, a per-provider breakdown, and the top findings — distinct from the full `report`. It **defaults to printing to stdout** (a dry run). The digest deliberately omits per-finding `detail`/`fix` text; run `report --last` for the full breakdown.
+Produce a concise **monthly** summary — total `$/mo`, a per-provider breakdown,
+and the top findings — distinct from the full `report`. It **defaults to printing
+to stdout** (a dry run). The digest deliberately omits per-finding `detail`/`fix`
+text; run `report --last` for the full breakdown.
 
 ```sh
 # Print the monthly digest to stdout (default)
-node dist/cli/index.js digest --all
+costguard digest --all
 
 # Render from the last saved run
-node dist/cli/index.js digest --last
+costguard digest --last
 
 # JSON output
-node dist/cli/index.js digest --all --json
+costguard digest --all --json
 
 # Write it to a local file instead of stdout
-node dist/cli/index.js digest --all --out digest-2026-05.md
+costguard digest --all --out digest-2026-05.md
 ```
 
 | Option | Effect |
@@ -256,7 +322,10 @@ node dist/cli/index.js digest --all --out digest-2026-05.md
 
 ## Environment variables
 
-Provider tokens are read **only** from the process environment or a gitignored `.env` in the CostGuard workspace. They are never printed, logged, or committed. Each provider module runs only when one of its tokens is present; offline, the modules are fully exercised by fixtures. All tokens are used **read-only**.
+Provider tokens are read **only** from the process environment or a gitignored
+`.env` in the CostGuard workspace. They are never printed, logged, or committed.
+Each provider module runs only when one of its tokens is present; offline, the
+modules are fully exercised by fixtures. All tokens are used **read-only**.
 
 | Variable (any one of) | Provider | Used for |
 |-----------------------|----------|----------|
@@ -267,13 +336,16 @@ Provider tokens are read **only** from the process environment or a gitignored `
 | `NEON_API_KEY` / `NEON_API_TOKEN` | neon | Projects, branches, compute hours |
 | `COSTGUARD_DIGEST_WEBHOOK` | — | Optional `digest --post` destination (inert in this build) |
 
-Use `providers --check` to confirm which tokens the environment exposes without revealing any value.
+Use `providers --check` to confirm which tokens the environment exposes without
+revealing any value.
 
 ---
 
 ## Provider modules
 
-Half B ships five read-only, opt-in provider modules. Each reads live billed resources, reconciles them against the registry `active{}` allowlist, and emits `orphaned` and `over-provisioned` findings with a best-effort `$/mo`.
+Half B ships five read-only, opt-in provider modules. Each reads live billed
+resources, reconciles them against the registry `active{}` allowlist, and emits
+`orphaned` and `over-provisioned` findings with a best-effort `$/mo`.
 
 | Module | Reads | Flags |
 |--------|-------|-------|
@@ -283,7 +355,9 @@ Half B ships five read-only, opt-in provider modules. Each reads live billed res
 | **netlify** | Sites, build minutes, bandwidth | build-minute spend; runaway bandwidth |
 | **neon** | Projects, branches, compute hours | idle branches; orphaned (defunct but billed) projects |
 
-All provider access is HTTP `GET`; the railway module uses GraphQL **queries** only, guarded against mutations. No module ever issues a write or delete call. A module activates only when its token (above) is present; otherwise it is skipped.
+All provider access is HTTP `GET`; the railway module uses GraphQL **queries**
+only, guarded against mutations. No module ever issues a write or delete call. A
+module activates only when its token (above) is present; otherwise it is skipped.
 
 ---
 
@@ -299,21 +373,13 @@ CostGuard is built to be safe to run anywhere, including on a schedule:
 
 ---
 
-## Scheduler template
-
-A monthly digest can be wired to GitHub Actions via the documented, **inert** scheduler template `templates/costguard-digest.yml`.
-
-- It lives under `templates/` — **not** `.github/workflows/` — so it never runs automatically and is not enabled by this project.
-- **To activate:** a human copies it into `.github/workflows/` in the target repo and supplies the required secrets (e.g. `COSTGUARD_DIGEST_WEBHOOK`).
-- **To roll back:** delete the copy from `.github/workflows/`.
-
-Activating the template is a deliberate human action outside CostGuard's own runtime.
-
----
-
 ## How workspaces.json works
 
-`workspaces.json` is the registry of projects CostGuard tracks. `registry --init` scans `workspacesRoot` (default: `~/Workspaces`) and writes a fresh file with auto-detected `providers` arrays (GitHub, Netlify, Supabase, etc.) and blank `active{}` blocks.
+`workspaces.json` is the registry of projects CostGuard tracks. `registry --init`
+scans `workspacesRoot` (default: `~/Workspaces`) and writes a fresh file with
+auto-detected `providers` arrays (GitHub, Netlify, Supabase, etc.) and blank
+`active{}` blocks. A starter [`workspaces.example.json`](workspaces.example.json)
+ships with this repo.
 
 ```json
 {
@@ -327,7 +393,11 @@ Activating the template is a deliberate human action outside CostGuard's own run
 }
 ```
 
-The `active{}` block is the allowlist used by the Half B provider checks: any live resource not listed there is flagged as **orphaned**, and any resource larger or more capable than declared is flagged as **over-provisioned**. Leave it empty if you only run the static half; the provider modules then have nothing to reconcile against.
+The `active{}` block is the allowlist used by the Half B provider checks: any live
+resource not listed there is flagged as **orphaned**, and any resource larger or
+more capable than declared is flagged as **over-provisioned**. Leave it empty if
+you only run the static half; the provider modules then have nothing to reconcile
+against.
 
 ---
 
@@ -363,6 +433,19 @@ Per-workspace overrides in `perWorkspace` merge on top of `defaults`.
 
 ---
 
+## Scheduler template
+
+A monthly digest can be wired to GitHub Actions via the documented, **inert**
+scheduler template `templates/costguard-digest.yml`.
+
+- It lives under `templates/` — **not** `.github/workflows/` — so it never runs automatically and is not enabled by this project.
+- **To activate:** a human copies it into `.github/workflows/` in the target repo and supplies the required secrets (e.g. `COSTGUARD_DIGEST_WEBHOOK`).
+- **To roll back:** delete the copy from `.github/workflows/`.
+
+Activating the template is a deliberate human action outside CostGuard's own runtime.
+
+---
+
 ## Exit codes
 
 | Code | Meaning |
@@ -370,3 +453,24 @@ Per-workspace overrides in `perWorkspace` merge on top of `defaults`.
 | `0` | All checks passed (or only INFO/WARN findings) |
 | `1` | At least one HIGH severity finding (CI gate signal) |
 | `1` | Error loading registry, config, or invalid arguments |
+
+---
+
+## From source
+
+The plugin and npm installs are prebuilt — you only need a build when developing
+from a checkout:
+
+```sh
+pnpm install
+pnpm build      # emits dist/cli/index.js and dist/mcp/server.js
+pnpm test
+```
+
+---
+
+## Links
+
+- **GitHub:** https://github.com/mbanderas/costguard
+- **Issues:** https://github.com/mbanderas/costguard/issues
+- **License:** [MIT](LICENSE)
