@@ -58,4 +58,46 @@ describe("collectSiteFindings", () => {
     expect(findings.some((f) => f.workspace === "ok")).toBe(true);
     expect(findings.some((f) => f.workspace === "dead")).toBe(false);
   });
+
+  it("analyzes multiple reachable sites concurrently (G4) — both contribute", async () => {
+    // Two assetless pages on separate servers sharing one in-flight counter. Each
+    // site is exactly one fetch, so cross-site concurrency is isolated: sequential
+    // analysis caps in-flight at 1, parallel reaches 2.
+    const state = { inFlight: 0, max: 0 };
+    const make = (): Promise<{ origin: string; close: () => Promise<void> }> => {
+      const s = http.createServer((req, res) => {
+        state.inFlight += 1;
+        state.max = Math.max(state.max, state.inFlight);
+        setTimeout(() => {
+          state.inFlight -= 1;
+          res.setHeader("x-vercel-id", "t");
+          res.setHeader("content-type", "text/html");
+          res.end("<!doctype html><html><head></head><body>ok</body></html>");
+        }, 40);
+      });
+      return new Promise((resolve) => {
+        s.listen(0, "127.0.0.1", () => {
+          const port = (s.address() as AddressInfo).port;
+          resolve({
+            origin: `http://127.0.0.1:${port}`,
+            close: () => new Promise<void>((r) => s.close(() => r())),
+          });
+        });
+      });
+    };
+    const a = await make();
+    const b = await make();
+    try {
+      const findings = await collectSiteFindings([
+        { workspace: "site-a", site: `${a.origin}/` },
+        { workspace: "site-b", site: `${b.origin}/` },
+      ]);
+      expect(state.max).toBeGreaterThan(1); // sequential per-workspace would serialize to 1
+      expect(findings.some((f) => f.workspace === "site-a")).toBe(true);
+      expect(findings.some((f) => f.workspace === "site-b")).toBe(true);
+    } finally {
+      await a.close();
+      await b.close();
+    }
+  });
 });

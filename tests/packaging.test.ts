@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { execFileSync, execSync } from "node:child_process";
+import { execFileSync, execSync, spawn } from "node:child_process";
+import http from "node:http";
+import { Buffer } from "node:buffer";
+import type { AddressInfo } from "node:net";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -40,6 +43,10 @@ describe("packaging: committed self-contained dist", () => {
       encoding: "utf8",
     }).trim();
     expect(tracked).toBe("dist/cli/index.js");
+  });
+
+  it("has no dead tsconfig.build.json (build is esbuild via scripts/bundle.mjs)", () => {
+    expect(fs.existsSync(path.join(repoRoot, "tsconfig.build.json"))).toBe(false);
   });
 
   it("runs `--version` from the committed bundle with no build step", () => {
@@ -88,6 +95,70 @@ describe("packaging: committed self-contained dist", () => {
       expect(Array.isArray(report.findings)).toBe(true);
       expect(report.findings.length).toBeGreaterThan(0);
     } finally {
+      try {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      } catch {
+        // best-effort temp cleanup
+      }
+    }
+  });
+
+  it("runs `site --json` from a clean-room copy against a local fixture (R14 + G1)", async () => {
+    // Same copy-only install shape, exercising the `site` command end-to-end and
+    // proving the no-double-count cost math holds in the SHIPPED bundle. Uses async
+    // spawn (not execFileSync) because the fixture server shares this event loop —
+    // a synchronous child would deadlock its own fetches.
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cg-site-"));
+    const server = http.createServer((req, res) => {
+      const url = req.url ?? "/";
+      if (url === "/") {
+        res.setHeader("x-vercel-id", "t"); // billed host (Vercel)
+        res.setHeader("content-type", "text/html");
+        res.end(
+          `<!doctype html><html><head><script src="/app.js"></script></head>` +
+            `<body><img src="/big.jpg"></body></html>`,
+        );
+      } else if (url === "/big.jpg") {
+        res.setHeader("content-type", "image/jpeg");
+        res.end(Buffer.alloc(700_000, 1)); // oversized image
+      } else if (url === "/app.js") {
+        res.setHeader("content-type", "application/javascript");
+        res.end(Buffer.alloc(400_000, 97)); // large uncompressed JS
+      } else {
+        res.statusCode = 404;
+        res.end("no");
+      }
+    });
+    try {
+      fs.cpSync(path.join(repoRoot, "dist"), path.join(tmp, "dist"), { recursive: true });
+      fs.cpSync(path.join(repoRoot, "knowledge"), path.join(tmp, "knowledge"), { recursive: true });
+      const port = await new Promise<number>((resolve) =>
+        server.listen(0, "127.0.0.1", () => resolve((server.address() as AddressInfo).port)),
+      );
+      const { stdout, code } = await new Promise<{ stdout: string; code: number }>((resolve) => {
+        const child = spawn(
+          process.execPath,
+          [path.join(tmp, "dist", "cli", "index.js"), "site", `http://127.0.0.1:${port}/`, "--json"],
+          { cwd: tmp }, // NO node_modules — bundle must be self-contained
+        );
+        let out = "";
+        child.stdout.on("data", (d: Buffer) => (out += d.toString()));
+        child.on("close", (c) => resolve({ stdout: out, code: c ?? 0 }));
+      });
+
+      expect([0, 1]).toContain(code);
+      const report = JSON.parse(stdout) as {
+        findings: { rule: string; estMonthlyUsd: number; detail: string }[];
+        totalMonthlyUsd: number;
+      };
+      const transfer = report.findings.find((f) => f.rule === "site/transfer-weight")!;
+      const image = report.findings.find((f) => f.rule === "site/oversized-image")!;
+      // G1 end-to-end on the shipped bundle: headline == the sole transfer cost line
+      expect(report.totalMonthlyUsd).toBeCloseTo(transfer.estMonthlyUsd, 9);
+      expect(image.estMonthlyUsd).toBe(0);
+      expect(image.detail).toMatch(/\$/);
+    } finally {
+      await new Promise<void>((r) => server.close(() => r()));
       try {
         fs.rmSync(tmp, { recursive: true, force: true });
       } catch {

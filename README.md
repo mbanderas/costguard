@@ -159,9 +159,13 @@ workspace; it only adds newly detected providers for `basename(dir)`.
 Audit a **live URL** for cost-relevant waste — read-only and GET-only (no
 browser, no form submit, no credential replay). It flags transfer weight,
 oversized images, missing compression, weak cache headers, and render-blocking
-scripts. Each finding carries a sourced `$/mo` when the host bills transfer
-(Vercel/Netlify) or an explicit `$0` performance note when it doesn't (Cloudflare
-Pages static / unknown host) — never a fabricated number.
+scripts. The page's `$/mo` headline is the single `site/transfer-weight` line
+(sourced when the host bills transfer — Vercel/Netlify — or an explicit `$0`
+performance note when it doesn't, e.g. Cloudflare Pages static / unknown host;
+never a fabricated number). Per-asset findings (`oversized-image`,
+`missing-compression`) report their dollar share in the `detail` text and carry
+`estMonthlyUsd: 0` so the headline isn't double-counted. A `$0` performance-only
+page never raises a `high` finding, so it never fails CI on cost alone.
 
 ```sh
 node dist/cli/index.js site https://example.com

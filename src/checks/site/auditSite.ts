@@ -13,14 +13,17 @@ export interface SiteTarget {
  * single unreachable site never aborts the wider audit.
  */
 export async function collectSiteFindings(targets: SiteTarget[]): Promise<Finding[]> {
+  const active = targets.filter(
+    (t): t is SiteTarget & { site: string } => t.site !== undefined && t.site.length > 0,
+  );
+  // Independent per-workspace site checks run concurrently; a rejected (unreachable)
+  // site is swallowed so it never aborts the audit. Results flatten in target order.
+  const settled = await Promise.allSettled(
+    active.map((t) => analyzeSite(t.site, { workspace: t.workspace })),
+  );
   const findings: Finding[] = [];
-  for (const target of targets) {
-    if (target.site === undefined || target.site.length === 0) continue;
-    try {
-      findings.push(...(await analyzeSite(target.site, { workspace: target.workspace })));
-    } catch {
-      // unreachable site — skip, never abort the audit
-    }
+  for (const r of settled) {
+    if (r.status === "fulfilled") findings.push(...r.value);
   }
   return findings;
 }

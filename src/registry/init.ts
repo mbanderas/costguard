@@ -6,6 +6,14 @@ import type { WorkspaceRegistry, WorkspaceEntry } from "./schema.js";
 /**
  * Detect providers for a single workspace directory using fixed static signals.
  * Returns providers sorted alphabetically for deterministic output.
+ *
+ * NOTE [F9, deferred per loop D-g5]: src/discovery/detect.ts has a broader,
+ * signal-table detector. Delegating to it was considered but deferred: that detector
+ * is env-aware (defaults to process.env and reads `.env*` files in the dir), whereas
+ * this scan must stay a deterministic file/dep-only detector — its output is the
+ * committed workspaces.json source of truth and must not vary with machine env or
+ * the presence of a `.env.example`. The two serve different contracts; merging them
+ * is out of scope for the site-cost review loop. Duplication is acknowledged here.
  */
 function detectProviders(wsDir: string): string[] {
   const providers: string[] = [];

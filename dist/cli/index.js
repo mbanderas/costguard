@@ -21573,7 +21573,9 @@ function detectHost(headers) {
 function wireBytes(headers, bodyLen) {
   const cl = headers.get("content-length");
   const n = cl !== null ? Number(cl) : NaN;
-  return Number.isFinite(n) && n >= 0 ? n : bodyLen;
+  if (!(Number.isFinite(n) && n >= 0)) return bodyLen;
+  const compressed = /(br|gzip|deflate|zstd)/i.test(headers.get("content-encoding") ?? "");
+  return compressed ? n : Math.min(n, bodyLen);
 }
 function safeHost(url) {
   try {
@@ -21583,8 +21585,7 @@ function safeHost(url) {
   }
 }
 async function fetchAssets(doFetch, urls) {
-  const out = [];
-  for (const u of urls) {
+  const fetchOne = async (u) => {
     try {
       const res = await doFetch(u, {
         method: "GET",
@@ -21592,16 +21593,22 @@ async function fetchAssets(doFetch, urls) {
         headers: { "accept-encoding": "br, gzip", "user-agent": "costguard-site-check" }
       });
       const body = Buffer2.from(await res.arrayBuffer());
-      out.push({
+      return {
         url: u,
         kind: kindFor(u, res.headers.get("content-type")),
         wireBytes: wireBytes(res.headers, body.byteLength),
         cacheControl: res.headers.get("cache-control"),
         contentEncoding: res.headers.get("content-encoding"),
         contentType: res.headers.get("content-type")
-      });
+      };
     } catch {
+      return null;
     }
+  };
+  const settled = await Promise.allSettled(urls.map(fetchOne));
+  const out = [];
+  for (const r of settled) {
+    if (r.status === "fulfilled" && r.value !== null) out.push(r.value);
   }
   return out;
 }
@@ -21649,11 +21656,17 @@ function hostLabel(host, costs) {
 function kb(bytes) {
   return `${(bytes / 1e3).toFixed(0)} KB`;
 }
+function dollars(n) {
+  return `$${n.toFixed(2)}`;
+}
+function cap(severity, billed) {
+  return !billed && severity === "high" ? "warn" : severity;
+}
 function transferFinding(resources, host, costs, visits, workspace) {
   const total = resources.reduce((s, r) => s + r.wireBytes, 0);
   const usd = transferUsd(total, host, costs, visits);
   const billed = usd > 0;
-  const severity = total > 3e6 ? "high" : total > 1e6 ? "warn" : "info";
+  const severity = cap(total > 3e6 ? "high" : total > 1e6 ? "warn" : "info", billed);
   const costNote = billed ? `${hostLabel(host, costs)}: assumes ${visits.toLocaleString()} visits/mo` : `performance-only ($0): ${hostLabel(host, costs)} does not bill transfer`;
   return {
     workspace,
@@ -21669,33 +21682,41 @@ function transferFinding(resources, host, costs, visits, workspace) {
 }
 function imageFindings(assets, host, costs, visits, workspace) {
   const limit = costs.thresholds.oversizedImageBytes;
-  return assets.filter((a) => a.kind === "image" && a.wireBytes > limit).map((a) => ({
-    workspace,
-    provider: PROVIDER2,
-    rule: "site/oversized-image",
-    severity: a.wireBytes > limit * 3 ? "high" : "warn",
-    estMonthlyUsd: transferUsd(a.wireBytes, host, costs, visits),
-    title: `Oversized image ${kb(a.wireBytes)}`,
-    detail: `${a.url} is ${kb(a.wireBytes)} (threshold ${kb(limit)}).`,
-    fix: "Re-encode to WebP/AVIF, resize to the rendered dimensions, and compress.",
-    autofixable: false
-  }));
+  return assets.filter((a) => a.kind === "image" && a.wireBytes > limit).map((a) => {
+    const assetUsd = transferUsd(a.wireBytes, host, costs, visits);
+    return {
+      workspace,
+      provider: PROVIDER2,
+      rule: "site/oversized-image",
+      severity: cap(a.wireBytes > limit * 3 ? "high" : "warn", assetUsd > 0),
+      // These bytes are already counted by site/transfer-weight; this asset's
+      // share of that cost lives in `detail`, never added to the total again.
+      estMonthlyUsd: 0,
+      title: `Oversized image ${kb(a.wireBytes)}`,
+      detail: `${a.url} is ${kb(a.wireBytes)} (threshold ${kb(limit)}); \u2248 ${dollars(assetUsd)}/mo of page transfer is this asset.`,
+      fix: "Re-encode to WebP/AVIF, resize to the rendered dimensions, and compress.",
+      autofixable: false
+    };
+  });
 }
 function compressionFindings(resources, host, costs, visits, workspace) {
   const min = costs.thresholds.largeTextAssetBytes;
   const compressible = (r) => (r.kind === "html" || r.kind === "script" || r.kind === "style") && r.wireBytes > min && !/(br|gzip|deflate|zstd)/i.test(r.contentEncoding ?? "");
   return resources.filter(compressible).map((r) => {
     const saved = r.wireBytes * costs.compressibleSavingsRatio;
+    const savedUsd = transferUsd(saved, host, costs, visits);
     return {
       workspace,
       provider: PROVIDER2,
       rule: "site/missing-compression",
       severity: "warn",
-      estMonthlyUsd: transferUsd(saved, host, costs, visits),
+      // Recoverable savings, not a currently-billed cost: $0 in the additive total;
+      // the recoverable figure lives in `detail` (matches cache/render-blocking).
+      estMonthlyUsd: 0,
       title: `Uncompressed ${r.kind} ${kb(r.wireBytes)}`,
       detail: `${r.url} is served without br/gzip; ~${kb(saved)} (${Math.round(
         costs.compressibleSavingsRatio * 100
-      )}%) is recoverable.`,
+      )}%) is recoverable \u2248 ${dollars(savedUsd)}/mo if compressed.`,
       fix: "Enable Brotli/gzip for text assets at the CDN/host.",
       autofixable: false
     };
@@ -21763,13 +21784,15 @@ __export(auditSite_exports, {
   collectSiteFindings: () => collectSiteFindings
 });
 async function collectSiteFindings(targets) {
+  const active = targets.filter(
+    (t) => t.site !== void 0 && t.site.length > 0
+  );
+  const settled = await Promise.allSettled(
+    active.map((t) => analyzeSite(t.site, { workspace: t.workspace }))
+  );
   const findings = [];
-  for (const target of targets) {
-    if (target.site === void 0 || target.site.length === 0) continue;
-    try {
-      findings.push(...await analyzeSite(target.site, { workspace: target.workspace }));
-    } catch {
-    }
+  for (const r of settled) {
+    if (r.status === "fulfilled") findings.push(...r.value);
   }
   return findings;
 }

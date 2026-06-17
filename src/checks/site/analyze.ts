@@ -11,7 +11,14 @@ import { loadSiteCosts, type SiteCosts } from "./rates.js";
 const GB = 1_000_000_000;
 const PROVIDER = "site";
 
-type HostKey = "vercel" | "netlify" | "cloudflare" | "unknown";
+/**
+ * Host keys detectHost can return. The HostKey union derives from this tuple so the
+ * detector's possible outputs are one source of truth — a consistency test asserts
+ * every billed host in site-costs.json appears here, guarding against a billed host
+ * added to the JSON but left unreachable by the detector (which would silently $0 it).
+ */
+export const DETECTABLE_HOSTS = ["vercel", "netlify", "cloudflare", "unknown"] as const;
+type HostKey = (typeof DETECTABLE_HOSTS)[number];
 
 export interface SiteAnalysisOptions {
   /** Injectable fetch (tests). Defaults to global fetch. */
@@ -89,7 +96,13 @@ function detectHost(headers: Headers): HostKey {
 function wireBytes(headers: Headers, bodyLen: number): number {
   const cl = headers.get("content-length");
   const n = cl !== null ? Number(cl) : NaN;
-  return Number.isFinite(n) && n >= 0 ? n : bodyLen;
+  if (!(Number.isFinite(n) && n >= 0)) return bodyLen;
+  // A compressed response legitimately advertises a Content-Length (the compressed
+  // wire size) smaller than the decoded body, so trust it. An uncompressed wire size
+  // cannot plausibly exceed the bytes actually received — clamp a bogus oversized
+  // Content-Length to the body length to avoid a phantom transfer cost.
+  const compressed = /(br|gzip|deflate|zstd)/i.test(headers.get("content-encoding") ?? "");
+  return compressed ? n : Math.min(n, bodyLen);
 }
 
 function safeHost(url: string): string {
@@ -101,8 +114,7 @@ function safeHost(url: string): string {
 }
 
 async function fetchAssets(doFetch: typeof fetch, urls: string[]): Promise<Resource[]> {
-  const out: Resource[] = [];
-  for (const u of urls) {
+  const fetchOne = async (u: string): Promise<Resource | null> => {
     try {
       const res = await doFetch(u, {
         method: "GET",
@@ -110,17 +122,25 @@ async function fetchAssets(doFetch: typeof fetch, urls: string[]): Promise<Resou
         headers: { "accept-encoding": "br, gzip", "user-agent": "costguard-site-check" },
       });
       const body = Buffer.from(await res.arrayBuffer());
-      out.push({
+      return {
         url: u,
         kind: kindFor(u, res.headers.get("content-type")),
         wireBytes: wireBytes(res.headers, body.byteLength),
         cacheControl: res.headers.get("cache-control"),
         contentEncoding: res.headers.get("content-encoding"),
         contentType: res.headers.get("content-type"),
-      });
+      };
     } catch {
-      // unreachable asset — skip, never fail the whole analysis
+      return null; // unreachable asset — skip, never fail the whole analysis
     }
+  };
+  // Fetch independent same-origin assets concurrently (GET-only preserved). Order is
+  // kept stable (map index order) for deterministic findings; an unreachable asset
+  // resolves to null and is filtered, never aborting the others.
+  const settled = await Promise.allSettled(urls.map(fetchOne));
+  const out: Resource[] = [];
+  for (const r of settled) {
+    if (r.status === "fulfilled" && r.value !== null) out.push(r.value);
   }
   return out;
 }
@@ -183,6 +203,20 @@ function kb(bytes: number): string {
   return `${(bytes / 1000).toFixed(0)} KB`;
 }
 
+function dollars(n: number): string {
+  return `$${n.toFixed(2)}`;
+}
+
+/**
+ * estMonthlyUsd is an additive monthly-cost field, so a $0 (not-billed) host must
+ * never raise a "high" finding that would fail CI on a genuinely free page. Demote
+ * "high" to "warn" when the finding carries no billed cost; "high" stays reachable
+ * for billed hosts over the threshold.
+ */
+function cap(severity: Finding["severity"], billed: boolean): Finding["severity"] {
+  return !billed && severity === "high" ? "warn" : severity;
+}
+
 function transferFinding(
   resources: Resource[],
   host: HostKey,
@@ -193,7 +227,7 @@ function transferFinding(
   const total = resources.reduce((s, r) => s + r.wireBytes, 0);
   const usd = transferUsd(total, host, costs, visits);
   const billed = usd > 0;
-  const severity = total > 3_000_000 ? "high" : total > 1_000_000 ? "warn" : "info";
+  const severity = cap(total > 3_000_000 ? "high" : total > 1_000_000 ? "warn" : "info", billed);
   const costNote = billed
     ? `${hostLabel(host, costs)}: assumes ${visits.toLocaleString()} visits/mo`
     : `performance-only ($0): ${hostLabel(host, costs)} does not bill transfer`;
@@ -220,17 +254,22 @@ function imageFindings(
   const limit = costs.thresholds.oversizedImageBytes;
   return assets
     .filter((a) => a.kind === "image" && a.wireBytes > limit)
-    .map((a) => ({
-      workspace,
-      provider: PROVIDER,
-      rule: "site/oversized-image",
-      severity: a.wireBytes > limit * 3 ? ("high" as const) : ("warn" as const),
-      estMonthlyUsd: transferUsd(a.wireBytes, host, costs, visits),
-      title: `Oversized image ${kb(a.wireBytes)}`,
-      detail: `${a.url} is ${kb(a.wireBytes)} (threshold ${kb(limit)}).`,
-      fix: "Re-encode to WebP/AVIF, resize to the rendered dimensions, and compress.",
-      autofixable: false,
-    }));
+    .map((a) => {
+      const assetUsd = transferUsd(a.wireBytes, host, costs, visits);
+      return {
+        workspace,
+        provider: PROVIDER,
+        rule: "site/oversized-image",
+        severity: cap(a.wireBytes > limit * 3 ? "high" : "warn", assetUsd > 0),
+        // These bytes are already counted by site/transfer-weight; this asset's
+        // share of that cost lives in `detail`, never added to the total again.
+        estMonthlyUsd: 0,
+        title: `Oversized image ${kb(a.wireBytes)}`,
+        detail: `${a.url} is ${kb(a.wireBytes)} (threshold ${kb(limit)}); ≈ ${dollars(assetUsd)}/mo of page transfer is this asset.`,
+        fix: "Re-encode to WebP/AVIF, resize to the rendered dimensions, and compress.",
+        autofixable: false,
+      };
+    });
 }
 
 function compressionFindings(
@@ -247,16 +286,19 @@ function compressionFindings(
     !/(br|gzip|deflate|zstd)/i.test(r.contentEncoding ?? "");
   return resources.filter(compressible).map((r) => {
     const saved = r.wireBytes * costs.compressibleSavingsRatio;
+    const savedUsd = transferUsd(saved, host, costs, visits);
     return {
       workspace,
       provider: PROVIDER,
       rule: "site/missing-compression",
       severity: "warn" as const,
-      estMonthlyUsd: transferUsd(saved, host, costs, visits),
+      // Recoverable savings, not a currently-billed cost: $0 in the additive total;
+      // the recoverable figure lives in `detail` (matches cache/render-blocking).
+      estMonthlyUsd: 0,
       title: `Uncompressed ${r.kind} ${kb(r.wireBytes)}`,
       detail: `${r.url} is served without br/gzip; ~${kb(saved)} (${Math.round(
         costs.compressibleSavingsRatio * 100,
-      )}%) is recoverable.`,
+      )}%) is recoverable ≈ ${dollars(savedUsd)}/mo if compressed.`,
       fix: "Enable Brotli/gzip for text assets at the CDN/host.",
       autofixable: false,
     };

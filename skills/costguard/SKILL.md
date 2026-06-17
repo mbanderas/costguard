@@ -92,9 +92,12 @@ costguard discover . --write # union-merge detected providers into ./workspaces.
 
 Read-only, GET-only checks on a live URL (no browser, no form submit, no auth
 replay). Flags transfer weight, oversized images, missing compression, weak cache
-headers, and render-blocking scripts — with a sourced `$/mo` when the host bills
-transfer (Vercel/Netlify), or an explicit `$0` performance note (Cloudflare Pages
-static / unknown host).
+headers, and render-blocking scripts. The `$/mo` headline is the single
+`site/transfer-weight` line — sourced when the host bills transfer (Vercel/Netlify),
+or an explicit `$0` performance note (Cloudflare Pages static / unknown host).
+Per-asset findings (`oversized-image`, `missing-compression`) put their dollar share
+in `detail` and carry `estMonthlyUsd: 0` (no double-count); a `$0` performance-only
+page never raises a `high` finding, so it never fails CI on cost alone.
 
 ```bash
 costguard site <url>         # Markdown report
