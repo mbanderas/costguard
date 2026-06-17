@@ -14,10 +14,11 @@ Costguard reads a `workspaces.json` registry from the **current working
 directory** — run it from a project that has one (or run `costguard registry
 init` first).
 
-Command launcher: use `costguard` if it is on `PATH`; otherwise run the built
-CLI from your costguard checkout: `node <costguard>/dist/cli/index.js`. Below,
-`costguard` means either form. If `dist/cli/index.js` is missing, build it once
-with `pnpm build`.
+Install this skill: `npx -y -p @costguard/costguard-mcp costguard install --target cline`.
+
+Command launcher: run `npx -y -p @costguard/costguard-mcp costguard <args>`, or
+`costguard <args>` if installed globally (`npm i -g @costguard/costguard-mcp`).
+Below, `costguard` means either form.
 
 ## 1. Audit for waste (the main action)
 
@@ -51,4 +52,3 @@ costguard digest             # render the monthly cost digest (dry-run)
   read from the environment / `.env` only; a provider with no token present is
   skipped, not failed. Supported: `github`, `supabase`, `railway`, `netlify`, `neon`.
 - Estimated dollar costs are best-effort and depend on plan/tier.
-- Requires `node` on `PATH` and a built costguard `dist/`.

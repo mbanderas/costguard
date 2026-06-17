@@ -14,9 +14,11 @@ Map it to one Costguard CLI call and run it from the repo root. Costguard reads
 a `workspaces.json` registry from the **current working directory** — run it
 from a project that has one (or run `costguard registry init` first).
 
-Command launcher: use `costguard` if it is on `PATH`; otherwise run the built
-CLI from your costguard checkout: `node <costguard>/dist/cli/index.js`. Below,
-`costguard` means either form.
+Install this workflow: `npx -y -p @costguard/costguard-mcp costguard install --target windsurf`.
+
+Command launcher: run `npx -y -p @costguard/costguard-mcp costguard <args>`, or
+`costguard <args>` if installed globally (`npm i -g @costguard/costguard-mcp`).
+Below, `costguard` means either form.
 
 1. Audit for waste:
 
@@ -42,4 +44,3 @@ Notes:
   are read from the environment / `.env` only; a provider with no token present
   is skipped, not failed.
 - Estimated dollar costs are best-effort and depend on plan/tier.
-- Requires `node` on `PATH` and a built costguard `dist/` (`pnpm build` once).

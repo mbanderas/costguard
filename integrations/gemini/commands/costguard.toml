@@ -6,9 +6,10 @@
 #
 # Once installed, invoke with `/costguard <args>` inside the Gemini CLI.
 #
-# Requires `node` on PATH and a built costguard `dist/` (run `pnpm build` in the
-# costguard checkout). Use `costguard` if it is on PATH, otherwise the
-# `node <costguard>/dist/cli/index.js` form shown below.
+# Install this command:
+#   npx -y -p @costguard/costguard-mcp costguard install --target gemini
+# Launcher: npx -y -p @costguard/costguard-mcp costguard <args>, or
+# `costguard <args>` if installed globally (npm i -g @costguard/costguard-mcp).
 
 description = "Costguard — audit repos and cloud accounts for CI/cron and spend waste, and auto-fix CI files"
 
@@ -23,8 +24,9 @@ Requested action: {{args}}
 
 Map it to one Costguard CLI call and run it from the repo root. Costguard reads
 a `workspaces.json` registry from the **current working directory** — run it
-from a project that has one (or run `costguard registry init` first). Use
-`costguard` if on PATH, else `node <costguard>/dist/cli/index.js`.
+from a project that has one (or run `costguard registry init` first). Run
+`npx -y -p @costguard/costguard-mcp costguard <args>`, or `costguard <args>` if
+installed globally (`npm i -g @costguard/costguard-mcp`).
 
 1. Audit for waste:
 
@@ -47,5 +49,4 @@ Notes:
   are read from the environment / `.env` only; a provider with no token present
   is skipped, not failed.
 - Estimated dollar costs are best-effort and depend on plan/tier.
-- Requires `node` on `PATH` and a built costguard `dist/`.
 """
