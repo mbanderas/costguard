@@ -1,7 +1,7 @@
 # Costguard — Design
 
 > Status: **Phases 1–5 shipped.** Standalone CLI in its own workspace.
-> Personal free tool (to be published on GitHub). Later: pluggable into Bunker + FounderOS.
+> Free, open-source tool. Designed to also be usable as a library.
 
 ---
 
@@ -290,15 +290,15 @@ These ship as templates under `costguard/templates/` so rules cite a concrete ta
 
 ---
 
-## 14. Future: Bunker / FounderOS integration
+## 14. Future: programmatic / library integration
 
 Out of scope to build now; design so it is not painful later:
 
-- Keep the orchestrator and checks as a **library** with a thin CLI shell, so Bunker /
-  FounderOS can call the same audit programmatically for the workspaces they manage.
-- Registry (`workspaces.json`) is the integration seam — FounderOS supplies the workspace
+- Keep the orchestrator and checks as a **library** with a thin CLI shell, so a host
+  application can call the same audit programmatically for the workspaces it manages.
+- Registry (`workspaces.json`) is the integration seam — the host supplies the workspace
   list + `active` allowlist; Costguard returns `Finding[]`.
-- No Bunker-specific code in v1. Just don't bury logic inside the CLI layer.
+- No host-specific code in v1. Just don't bury logic inside the CLI layer.
 
 ---
 

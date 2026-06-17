@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // ---------------------------------------------------------------------------
-// Packaging guarantee (Maestro S1): a fresh checkout — committed dist/ + knowledge/
+// Packaging guarantee: a fresh checkout — committed dist/ + knowledge/
 // with NO `node_modules` and NO install/build step — runs the skill end-to-end.
 // Claude Code / Codex plugin installs copy files only, so the committed
 // dist/cli/index.js must be a self-contained bundle. These tests prove that
