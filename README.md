@@ -5,18 +5,11 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2E9E6B" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/node-%3E%3D20-2E9E6B" alt="Node >= 20">
-</p>
-
-<!--
-  Dynamic npm/CI badges are omitted while the repo is private and the package
-  is unpublished (shields.io can't read a private repo, and an unpublished
-  package reports "not found"). Restore these once the repo is public and
-  @costguard/costguard-mcp is on npm:
   <a href="https://www.npmjs.com/package/@costguard/costguard-mcp"><img src="https://img.shields.io/npm/v/@costguard/costguard-mcp?label=npm&color=2E9E6B" alt="npm version"></a>
   <a href="https://github.com/mbanderas/costguard/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/mbanderas/costguard/ci.yml?branch=master&label=CI" alt="CI status"></a>
--->
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/mbanderas/costguard?color=2E9E6B" alt="MIT license"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/@costguard/costguard-mcp" alt="node version"></a>
+</p>
 
 CostGuard audits your repos and cloud providers for CI and infrastructure cost
 leaks. It is built for developers who run several projects across GitHub Actions,
