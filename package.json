@@ -1,5 +1,5 @@
 {
-  "name": "costguard-mcp",
+  "name": "@costguard/costguard-mcp",
   "version": "0.1.0",
   "description": "Audit your repos and cloud providers for CI and infrastructure cost leaks. Ships a CLI and an MCP server for AI coding agents (Claude Code, Codex, any MCP host).",
   "type": "module",
