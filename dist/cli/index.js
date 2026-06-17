@@ -9772,6 +9772,10 @@ function parsePushTrigger(raw) {
   const result = {};
   const branches = toStringArray(raw["branches"]);
   if (branches !== void 0) result.branches = branches;
+  const tags = toStringArray(raw["tags"]);
+  if (tags !== void 0) result.tags = tags;
+  const paths = toStringArray(raw["paths"]);
+  if (paths !== void 0) result.paths = paths;
   const pathsIgnore = toStringArray(raw["paths-ignore"]);
   if (pathsIgnore !== void 0) result["paths-ignore"] = pathsIgnore;
   return result;
@@ -9782,6 +9786,8 @@ function parsePullRequestTrigger(raw) {
   const result = {};
   const branches = toStringArray(raw["branches"]);
   if (branches !== void 0) result.branches = branches;
+  const paths = toStringArray(raw["paths"]);
+  if (paths !== void 0) result.paths = paths;
   const pathsIgnore = toStringArray(raw["paths-ignore"]);
   if (pathsIgnore !== void 0) result["paths-ignore"] = pathsIgnore;
   return result;
@@ -17805,12 +17811,15 @@ function checkDoubleTrigger(model, ctx) {
   ];
 }
 function hasSufficientPathsIgnore(patterns) {
-  if (patterns === void 0 || patterns.length === 0) return false;
-  return REQUIRED_PATHS_IGNORE.every((req) => patterns.includes(req));
+  return patterns !== void 0 && patterns.length > 0;
+}
+function isTagOnlyPush(push) {
+  return push !== void 0 && push.tags !== void 0 && push.tags.length > 0 && push.branches === void 0;
 }
 function checkNoPathsIgnore(model, ctx) {
   const findings = [];
-  if (model.push !== void 0 && !hasSufficientPathsIgnore(model.push["paths-ignore"])) {
+  const pushIsTagOnly = isTagOnlyPush(model.push);
+  if (model.push !== void 0 && !pushIsTagOnly && !(model.push.paths !== void 0 && model.push.paths.length > 0) && !hasSufficientPathsIgnore(model.push["paths-ignore"])) {
     findings.push({
       ...base(model, "ci/no-paths-ignore", ctx),
       severity: "warn",
@@ -17821,7 +17830,7 @@ function checkNoPathsIgnore(model, ctx) {
       autofixable: true
     });
   }
-  if (model.pull_request !== void 0 && !hasSufficientPathsIgnore(model.pull_request["paths-ignore"])) {
+  if (model.pull_request !== void 0 && !(model.pull_request.paths !== void 0 && model.pull_request.paths.length > 0) && !hasSufficientPathsIgnore(model.pull_request["paths-ignore"])) {
     findings.push({
       ...base(model, "ci/no-paths-ignore", ctx),
       severity: "warn",
@@ -17836,7 +17845,9 @@ function checkNoPathsIgnore(model, ctx) {
 }
 function checkNoConcurrency(model, ctx) {
   const conc = model.concurrency;
-  if (conc !== void 0 && conc["cancel-in-progress"] === true) return [];
+  if (conc !== void 0) return [];
+  const isAutoTriggered = model.pull_request !== void 0 || model.push !== void 0 && !isTagOnlyPush(model.push) || model.schedule !== void 0 && model.schedule.length > 0;
+  if (!isAutoTriggered) return [];
   return [
     {
       ...base(model, "ci/no-concurrency", ctx),
@@ -18091,13 +18102,12 @@ function checkDockerBuildNoCache(model, ctx) {
   }
   return findings;
 }
-var import_cron_parser, REQUIRED_PATHS_IGNORE, DOCKER_BUILD_RE, DOCKER_CACHE_RE;
+var import_cron_parser, DOCKER_BUILD_RE, DOCKER_CACHE_RE;
 var init_rules = __esm({
   "src/checks/ci/rules.ts"() {
     "use strict";
     import_cron_parser = __toESM(require_parser(), 1);
     init_runnerPricing();
-    REQUIRED_PATHS_IGNORE = ["**.md", "docs/**"];
     DOCKER_BUILD_RE = /\bdocker\s+(?:buildx\s+)?build\b/;
     DOCKER_CACHE_RE = /--cache-from|--cache-to|--mount=type=cache/;
   }
@@ -18143,7 +18153,8 @@ async function runActionlint(workspaceDir, workspace) {
           title: "actionlint not on PATH \u2014 correctness layer skipped",
           detail: "actionlint not on PATH; correctness layer skipped. Install: https://github.com/rhysd/actionlint",
           fix: "Install actionlint and ensure it is on PATH.",
-          autofixable: false
+          autofixable: false,
+          kind: "diagnostic"
         }
       ];
     }
@@ -18158,7 +18169,8 @@ async function runActionlint(workspaceDir, workspace) {
         title: "actionlint probe failed",
         detail: `actionlint --version failed: ${msg}`,
         fix: "Install actionlint and ensure it is on PATH.",
-        autofixable: false
+        autofixable: false,
+        kind: "diagnostic"
       }
     ];
   }
@@ -18194,7 +18206,8 @@ async function runActionlint(workspaceDir, workspace) {
         title: "actionlint run failed",
         detail: `actionlint failed: ${msg.slice(0, 200)}`,
         fix: "Check that actionlint is properly installed and the workflow files are accessible.",
-        autofixable: false
+        autofixable: false,
+        kind: "diagnostic"
       }
     ];
   }
@@ -21397,10 +21410,14 @@ var init_persist = __esm({
 // src/reporter/index.ts
 var reporter_exports = {};
 __export(reporter_exports, {
+  isCost: () => isCost,
   renderJson: () => renderJson,
   renderMarkdown: () => renderMarkdown,
   sortFindings: () => sortFindings
 });
+function isCost(f) {
+  return f.kind === void 0 || f.kind === "cost";
+}
 function severityRank(s) {
   if (s === "high") return 2;
   if (s === "warn") return 1;
@@ -21434,7 +21451,9 @@ function renderFinding(f) {
   return lines.join("\n");
 }
 function renderMarkdown(findings, meta) {
-  const grand = totalMonthlyUsd(findings);
+  const costFindings = findings.filter(isCost);
+  const diagnostics = findings.filter((f) => !isCost(f));
+  const grand = totalMonthlyUsd(costFindings);
   const sections = [];
   sections.push(`# CostGuard Audit Report`);
   sections.push(``);
@@ -21442,39 +21461,48 @@ function renderMarkdown(findings, meta) {
   sections.push(``);
   sections.push(`**Total estimated waste: ${formatUsd(grand)}**`);
   sections.push(``);
-  if (findings.length === 0) {
+  if (costFindings.length === 0) {
     sections.push(`No findings \u2014 all checks passed.`);
-    return sections.join("\n");
-  }
-  const groups = /* @__PURE__ */ new Map();
-  for (const f of findings) {
-    const group = groups.get(f.workspace) ?? [];
-    group.push(f);
-    groups.set(f.workspace, group);
-  }
-  const sortedGroups = [...groups.entries()].sort(([, aFindings], [, bFindings]) => {
-    const aTotal = totalMonthlyUsd(aFindings);
-    const bTotal = totalMonthlyUsd(bFindings);
-    return bTotal - aTotal;
-  });
-  for (const [workspace, wsFindings] of sortedGroups) {
-    const subtotal = totalMonthlyUsd(wsFindings);
-    sections.push(`## Workspace: ${workspace} (${formatUsd(subtotal)})`);
-    sections.push(``);
-    const sorted = sortFindings(wsFindings);
-    for (const f of sorted) {
-      sections.push(renderFinding(f));
-      sections.push(``);
+  } else {
+    const groups = /* @__PURE__ */ new Map();
+    for (const f of costFindings) {
+      const group = groups.get(f.workspace) ?? [];
+      group.push(f);
+      groups.set(f.workspace, group);
     }
+    const sortedGroups = [...groups.entries()].sort(([, aFindings], [, bFindings]) => {
+      const aTotal = totalMonthlyUsd(aFindings);
+      const bTotal = totalMonthlyUsd(bFindings);
+      return bTotal - aTotal;
+    });
+    for (const [workspace, wsFindings] of sortedGroups) {
+      const subtotal = totalMonthlyUsd(wsFindings);
+      sections.push(`## Workspace: ${workspace} (${formatUsd(subtotal)})`);
+      sections.push(``);
+      const sorted = sortFindings(wsFindings);
+      for (const f of sorted) {
+        sections.push(renderFinding(f));
+        sections.push(``);
+      }
+    }
+  }
+  if (diagnostics.length > 0) {
+    sections.push(`## Notices`);
+    sections.push(``);
+    for (const f of diagnostics) {
+      sections.push(`- \`${f.rule}\` **${f.title}** \u2014 ${f.detail}`);
+    }
+    sections.push(``);
   }
   return sections.join("\n");
 }
 function renderJson(findings, meta) {
   const sorted = sortFindings(findings);
+  const costFindings = findings.filter(isCost);
   return JSON.stringify(
     {
       generatedAt: meta.generatedAt,
-      totalMonthlyUsd: totalMonthlyUsd(findings),
+      totalMonthlyUsd: totalMonthlyUsd(costFindings),
       findings: sorted
     },
     null,
@@ -22360,8 +22388,8 @@ var require_identity = __commonJS({
     var isDocument = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === DOC;
     var isMap4 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === MAP;
     var isPair = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === PAIR;
-    var isScalar3 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SCALAR;
-    var isSeq2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SEQ;
+    var isScalar2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SCALAR;
+    var isSeq3 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SEQ;
     function isCollection(node) {
       if (node && typeof node === "object")
         switch (node[NODE_TYPE]) {
@@ -22382,7 +22410,7 @@ var require_identity = __commonJS({
         }
       return false;
     }
-    var hasAnchor = (node) => (isScalar3(node) || isCollection(node)) && !!node.anchor;
+    var hasAnchor = (node) => (isScalar2(node) || isCollection(node)) && !!node.anchor;
     exports.ALIAS = ALIAS;
     exports.DOC = DOC;
     exports.MAP = MAP;
@@ -22397,8 +22425,8 @@ var require_identity = __commonJS({
     exports.isMap = isMap4;
     exports.isNode = isNode;
     exports.isPair = isPair;
-    exports.isScalar = isScalar3;
-    exports.isSeq = isSeq2;
+    exports.isScalar = isScalar2;
+    exports.isSeq = isSeq3;
   }
 });
 
@@ -27939,7 +27967,7 @@ var require_cst = __commonJS({
     var FLOW_END = "";
     var SCALAR = "";
     var isCollection = (token) => !!token && "items" in token;
-    var isScalar3 = (token) => !!token && (token.type === "scalar" || token.type === "single-quoted-scalar" || token.type === "double-quoted-scalar" || token.type === "block-scalar");
+    var isScalar2 = (token) => !!token && (token.type === "scalar" || token.type === "single-quoted-scalar" || token.type === "double-quoted-scalar" || token.type === "block-scalar");
     function prettyToken(token) {
       switch (token) {
         case BOM:
@@ -28023,7 +28051,7 @@ var require_cst = __commonJS({
     exports.FLOW_END = FLOW_END;
     exports.SCALAR = SCALAR;
     exports.isCollection = isCollection;
-    exports.isScalar = isScalar3;
+    exports.isScalar = isScalar2;
     exports.prettyToken = prettyToken;
     exports.tokenType = tokenType;
   }
@@ -29677,17 +29705,24 @@ function hasRequiredPathsIgnore(node) {
   if (!(0, import_yaml.isMap)(node)) return false;
   const piNode = node.get("paths-ignore", true);
   if (!(0, import_yaml.isSeq)(piNode)) return false;
-  const items = piNode.items.map(
-    (item) => (0, import_yaml.isScalar)(item) ? String(item.value) : null
-  );
-  return PATHS_IGNORE_REQUIRED.every((p) => items.includes(p));
+  return piNode.items.length > 0;
 }
-var import_yaml, PATHS_IGNORE_REQUIRED, TRIGGERS, pathsIgnoreFixer;
+function hasPathsAllowList(triggerNode) {
+  if (!(0, import_yaml.isMap)(triggerNode)) return false;
+  const pathsNode = triggerNode.get("paths", true);
+  return (0, import_yaml.isSeq)(pathsNode) && pathsNode.items.length > 0;
+}
+function isTagOnlyPush2(triggerNode) {
+  if (!(0, import_yaml.isMap)(triggerNode)) return false;
+  const tagsNode = triggerNode.get("tags", true);
+  const branchesNode = triggerNode.get("branches", true);
+  return (0, import_yaml.isSeq)(tagsNode) && tagsNode.items.length > 0 && branchesNode === void 0;
+}
+var import_yaml, TRIGGERS, pathsIgnoreFixer;
 var init_pathsIgnore = __esm({
   "src/fix/fixers/pathsIgnore.ts"() {
     "use strict";
     import_yaml = __toESM(require_dist(), 1);
-    PATHS_IGNORE_REQUIRED = ["**.md", "docs/**"];
     TRIGGERS = ["push", "pull_request"];
     pathsIgnoreFixer = (filePath, content) => {
       const doc = (0, import_yaml.parseDocument)(content);
@@ -29700,6 +29735,8 @@ var init_pathsIgnore = __esm({
         const triggerNode = onNode.get(trigger, true);
         if (!(0, import_yaml.isMap)(triggerNode)) continue;
         if (hasRequiredPathsIgnore(triggerNode)) continue;
+        if (hasPathsAllowList(triggerNode)) continue;
+        if (trigger === "push" && isTagOnlyPush2(triggerNode)) continue;
         triggerNode.set("paths-ignore", ["**.md", "docs/**"]);
         changed = true;
       }
@@ -29717,11 +29754,8 @@ var init_pathsIgnore = __esm({
 });
 
 // src/fix/fixers/concurrency.ts
-function hasValidConcurrency(doc) {
-  const concNode = doc.get("concurrency", true);
-  if (!(0, import_yaml2.isMap)(concNode)) return false;
-  const cancelNode = concNode.get("cancel-in-progress", true);
-  return (0, import_yaml2.isScalar)(cancelNode) && cancelNode.value === true;
+function hasAnyConcurrency(doc) {
+  return (0, import_yaml2.isMap)(doc.get("concurrency", true));
 }
 var import_yaml2, concurrencyFixer;
 var init_concurrency = __esm({
@@ -29730,7 +29764,7 @@ var init_concurrency = __esm({
     import_yaml2 = __toESM(require_dist(), 1);
     concurrencyFixer = (filePath, content) => {
       const doc = (0, import_yaml2.parseDocument)(content);
-      if (hasValidConcurrency(doc)) {
+      if (hasAnyConcurrency(doc)) {
         return { filePath, original: content, patched: content, changed: false };
       }
       doc.set("concurrency", {
@@ -29748,11 +29782,29 @@ var init_concurrency = __esm({
 });
 
 // src/fix/fixers/timeout.ts
-var import_yaml3, timeoutFixer;
+function collectRunStrings(jobValue) {
+  if (!(0, import_yaml3.isMap)(jobValue)) return [];
+  const stepsNode = jobValue.get("steps", true);
+  if (!(0, import_yaml3.isSeq)(stepsNode)) return [];
+  const runs = [];
+  for (const step of stepsNode.items) {
+    if (!(0, import_yaml3.isMap)(step)) continue;
+    const runNode = step.get("run", true);
+    if ((0, import_yaml3.isScalar)(runNode) && typeof runNode.value === "string") {
+      runs.push(runNode.value);
+    }
+  }
+  return runs;
+}
+function chooseTimeout(runStrings) {
+  return runStrings.some((s) => DEPLOY_SIGNAL_RE.test(s)) ? 60 : 15;
+}
+var import_yaml3, DEPLOY_SIGNAL_RE, timeoutFixer;
 var init_timeout = __esm({
   "src/fix/fixers/timeout.ts"() {
     "use strict";
     import_yaml3 = __toESM(require_dist(), 1);
+    DEPLOY_SIGNAL_RE = /\b(helm|rollout|terraform apply|docker build|deploy)\b/i;
     timeoutFixer = (filePath, content) => {
       const doc = (0, import_yaml3.parseDocument)(content);
       const jobsNode = doc.get("jobs", true);
@@ -29765,7 +29817,8 @@ var init_timeout = __esm({
         if (!(0, import_yaml3.isMap)(jobValue)) continue;
         const existing = jobValue.get("timeout-minutes", true);
         if (existing !== void 0 && existing !== null) continue;
-        jobValue.set("timeout-minutes", 15);
+        const minutes = chooseTimeout(collectRunStrings(jobValue));
+        jobValue.set("timeout-minutes", minutes);
         changed = true;
       }
       if (!changed) {
@@ -30416,6 +30469,9 @@ var init_engine = __esm({
 });
 
 // src/digest/renderer.ts
+function isCost2(f) {
+  return f.kind === void 0 || f.kind === "cost";
+}
 function fmtUsd(amount) {
   return `$${amount.toFixed(2)}`;
 }
@@ -30428,16 +30484,17 @@ function buildProviderRows(findings) {
   return [...map.values()].sort((a, b) => b.total - a.total);
 }
 function renderDigestMarkdown(findings, meta) {
-  const total = totalMonthlyUsd(findings);
-  const highCount = findings.filter((f) => f.severity === "high").length;
-  const providerRows = buildProviderRows(findings);
-  const topFindings = sortFindings(findings).slice(0, 5);
+  const costFindings = findings.filter(isCost2);
+  const total = totalMonthlyUsd(costFindings);
+  const highCount = costFindings.filter((f) => f.severity === "high").length;
+  const providerRows = buildProviderRows(costFindings);
+  const topFindings = sortFindings(costFindings).slice(0, 5);
   const lines = [];
   lines.push(`# CostGuard Monthly Digest \u2014 ${meta.period}`);
   lines.push(`Generated: ${meta.generatedAt}`);
   lines.push(``);
   lines.push(
-    `**Total: ${fmtUsd(total)}/mo across ${findings.length} finding(s) \u2014 ${highCount} high.**`
+    `**Total: ${fmtUsd(total)}/mo across ${costFindings.length} finding(s) \u2014 ${highCount} high.**`
   );
   lines.push(``);
   lines.push(`## By provider`);
@@ -30458,10 +30515,11 @@ function renderDigestMarkdown(findings, meta) {
   return lines.join("\n");
 }
 function renderDigestJson(findings, meta) {
-  const total = totalMonthlyUsd(findings);
-  const highCount = findings.filter((f) => f.severity === "high").length;
-  const providerBreakdown = buildProviderRows(findings);
-  const topFindings = sortFindings(findings).slice(0, 5);
+  const costFindings = findings.filter(isCost2);
+  const total = totalMonthlyUsd(costFindings);
+  const highCount = costFindings.filter((f) => f.severity === "high").length;
+  const providerBreakdown = buildProviderRows(costFindings);
+  const topFindings = sortFindings(costFindings).slice(0, 5);
   return JSON.stringify(
     {
       period: meta.period,
