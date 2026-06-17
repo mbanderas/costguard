@@ -1,0 +1,14 @@
+{
+  "workspacesRoot": "~/Workspaces",
+  "defaults": {
+    "cronThresholdMinutes": 15,
+    "ciMinuteRate": 0.008,
+    "assumedPushesPerDay": 10,
+    "assumedMinutesPerRun": 5
+  },
+  "perWorkspace": {
+    "my-app": {
+      "cronThresholdMinutes": 30
+    }
+  }
+}
