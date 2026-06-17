@@ -140,8 +140,15 @@ function parseSteps(raw: unknown): JobStep[] {
 
 function parseJob(raw: unknown): JobModel | undefined {
   if (!isRecord(raw)) return undefined;
-  const runsOn =
-    typeof raw["runs-on"] === "string" ? raw["runs-on"] : "unknown";
+  const runsOnRaw = raw["runs-on"];
+  let runsOn = "unknown";
+  if (typeof runsOnRaw === "string") {
+    runsOn = runsOnRaw;
+  } else if (isStringArray(runsOnRaw)) {
+    // Array form, e.g. [self-hosted, linux, x64] — join the labels so
+    // self-hosted/larger-runner detection sees them instead of "unknown".
+    runsOn = runsOnRaw.join(", ");
+  }
   const steps = parseSteps(raw["steps"]);
   const strategyRaw = raw["strategy"];
   let matrix: MatrixConfig | undefined;

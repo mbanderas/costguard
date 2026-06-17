@@ -10,6 +10,9 @@ import {
   checkJobFanout,
   checkMatrixOverkill,
   checkScheduleFrequency,
+  checkOversizedRunner,
+  checkSelfHostedFee,
+  checkDockerBuildNoCache,
 } from "./rules.js";
 import { runActionlint } from "./actionlint.js";
 
@@ -38,6 +41,9 @@ function runRules(filePath: string, ctx: CheckContext): Finding[] {
       ...checkJobFanout(model, ctx),
       ...checkMatrixOverkill(model, ctx),
       ...checkScheduleFrequency(model, ctx),
+      ...checkOversizedRunner(model, ctx),
+      ...checkSelfHostedFee(model, ctx),
+      ...checkDockerBuildNoCache(model, ctx),
     ];
   } catch {
     return [];

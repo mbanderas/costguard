@@ -2,6 +2,13 @@ import parser from "cron-parser";
 import type { Finding } from "../../types.js";
 import type { CheckContext } from "../../types.js";
 import type { WorkflowModel } from "./parser.js";
+import {
+  loadRunnerPricing,
+  parseRunnerLabel,
+  hostedRatePerMinute,
+  baselineRatePerMinute,
+  isSelfHostedRunner,
+} from "./runnerPricing.js";
 
 // ------------------------------------------------------------------
 // Shared helpers
@@ -427,6 +434,151 @@ export function checkScheduleFrequency(
         "workflow on actual file changes using paths filters.",
       autofixable: true,
     });
+  }
+
+  return findings;
+}
+
+// ------------------------------------------------------------------
+// Rule 8: ci/oversized-runner
+// A job on a GitHub larger runner (e.g. ubuntu-latest-32-cores) priced
+// well above a right-sized standard runner. Quantifies the per-minute
+// premium x assumed run cadence into a real $/mo, from the sourced
+// knowledge/github-actions.json rate table.
+// ------------------------------------------------------------------
+
+export function checkOversizedRunner(
+  model: WorkflowModel,
+  ctx: CheckContext,
+): Finding[] {
+  const findings: Finding[] = [];
+  const { assumedMinutesPerRun, assumedPushesPerDay } = ctx.config;
+  const runsPerMonth = assumedPushesPerDay * 30;
+  const baselineCores = loadRunnerPricing().baselineCores;
+
+  for (const [jobName, job] of Object.entries(model.jobs)) {
+    const parsed = parseRunnerLabel(job.runsOn);
+    if (parsed === null) continue;
+
+    const rate = hostedRatePerMinute(parsed.os, parsed.cores);
+    const baseline = baselineRatePerMinute(parsed.os);
+    // Unknown size for this os, or not actually larger than the baseline.
+    if (rate === undefined || baseline === undefined || rate <= baseline) continue;
+
+    const premiumPerMin = rate - baseline;
+    const baseCores = baselineCores[parsed.os];
+    const est = monthlyUsd(assumedMinutesPerRun, runsPerMonth, premiumPerMin);
+
+    findings.push({
+      ...base(model, "ci/oversized-runner", ctx),
+      severity: "warn",
+      estMonthlyUsd: est,
+      title: `Job '${jobName}' runs on a ${parsed.cores}-core ${parsed.os} larger runner`,
+      detail:
+        `${fileRef(model, jobName)}: runs-on '${job.runsOn}' bills $${rate}/min versus ` +
+        `$${baseline}/min for a right-sized ${baseCores}-core ${parsed.os} runner — a ` +
+        `$${premiumPerMin.toFixed(3)}/min premium. Larger runners only pay off for CPU-bound ` +
+        `work; an I/O- or wait-bound job wastes the premium. Estimate assumes ` +
+        `~${assumedMinutesPerRun} min/run x ${runsPerMonth} runs/mo.`,
+      fix:
+        `Drop to a standard ${parsed.os} runner unless the job is genuinely CPU-bound. ` +
+        `Compare wall-clock time on a standard runner first; keep the larger runner only ` +
+        `if it meaningfully shortens the job.`,
+      autofixable: false,
+    });
+  }
+
+  return findings;
+}
+
+// ------------------------------------------------------------------
+// Rule 9: ci/self-hosted-fee
+// A job on a self-hosted runner now incurs GitHub's Actions cloud platform
+// fee (effective 2026-03-01). Self-hosted minutes were previously free; this
+// turns the new per-minute charge into a real $/mo from the sourced
+// knowledge/github-actions.json fact file.
+// ------------------------------------------------------------------
+
+export function checkSelfHostedFee(
+  model: WorkflowModel,
+  ctx: CheckContext,
+): Finding[] {
+  const pricing = loadRunnerPricing();
+  const fee = pricing.selfHostedPlatformFeePerMinute;
+  if (fee <= 0) return [];
+
+  const { assumedMinutesPerRun, assumedPushesPerDay } = ctx.config;
+  const runsPerMonth = assumedPushesPerDay * 30;
+  const findings: Finding[] = [];
+
+  for (const [jobName, job] of Object.entries(model.jobs)) {
+    if (!isSelfHostedRunner(job.runsOn)) continue;
+
+    const est = monthlyUsd(assumedMinutesPerRun, runsPerMonth, fee);
+    findings.push({
+      ...base(model, "ci/self-hosted-fee", ctx),
+      severity: "warn",
+      estMonthlyUsd: est,
+      title: `Job '${jobName}' runs on a self-hosted runner — now billed $${fee}/min platform fee`,
+      detail:
+        `${fileRef(model, jobName)}: runs-on '${job.runsOn}' targets a self-hosted runner. ` +
+        `Effective ${pricing.selfHostedFeeEffective}, GitHub bills a $${fee}/min Actions cloud ` +
+        `platform fee on self-hosted minutes that were previously free. Estimate assumes ` +
+        `~${assumedMinutesPerRun} min/run x ${runsPerMonth} runs/mo.`,
+      fix:
+        "Self-hosted minutes are no longer free. Cut self-hosted run volume " +
+        "(cancel-in-progress concurrency, path/branch filters) or move light jobs to " +
+        "GitHub-hosted runners and compare total cost. Confirm the fee against your plan first.",
+      autofixable: false,
+    });
+  }
+
+  return findings;
+}
+
+// ------------------------------------------------------------------
+// Rule 10: ci/docker-build-no-cache
+// A `run: docker build` step with no layer cache rebuilds every layer on
+// each run. Build-minute savings depend on image size/layer churn and are
+// not inferable from YAML, so this is a structural (estMonthlyUsd:0) finding
+// in the hybrid model — like ci/no-concurrency.
+// ------------------------------------------------------------------
+
+const DOCKER_BUILD_RE = /\bdocker\s+(?:buildx\s+)?build\b/;
+// Any of these signals an active layer cache (registry/gha/local buildx cache
+// or a BuildKit cache mount).
+const DOCKER_CACHE_RE = /--cache-from|--cache-to|--mount=type=cache/;
+
+export function checkDockerBuildNoCache(
+  model: WorkflowModel,
+  ctx: CheckContext,
+): Finding[] {
+  const findings: Finding[] = [];
+
+  for (const [jobName, job] of Object.entries(model.jobs)) {
+    for (const step of job.steps) {
+      const run = step.run;
+      if (run === undefined) continue;
+      if (!DOCKER_BUILD_RE.test(run) || DOCKER_CACHE_RE.test(run)) continue;
+
+      const stepRef = step.name ?? "docker build";
+      findings.push({
+        ...base(model, "ci/docker-build-no-cache", ctx),
+        severity: "warn",
+        estMonthlyUsd: 0,
+        title: `Job '${jobName}' builds a Docker image without a layer cache`,
+        detail:
+          `${fileRef(model, jobName)}: step '${stepRef}' runs \`docker build\` with no ` +
+          `--cache-from/--cache-to or BuildKit cache mount. Every run rebuilds all layers from ` +
+          `scratch instead of reusing unchanged ones. Saved minutes depend on image size and ` +
+          `layer churn, so cost is not estimated.`,
+        fix:
+          "Use docker/setup-buildx-action and build with a persistent cache, e.g. " +
+          "`docker buildx build --cache-from type=gha --cache-to type=gha,mode=max ...`, " +
+          "or the docker/build-push-action cache-from/cache-to inputs.",
+        autofixable: false,
+      });
+    }
   }
 
   return findings;

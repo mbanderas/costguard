@@ -1,0 +1,15 @@
+name: self-hosted-ci
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: [self-hosted, linux, x64]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: make build

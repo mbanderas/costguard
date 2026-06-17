@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "provider": "github-actions",
+  "updated": "2026-06-16",
+  "currency": "USD",
+  "unit": "per-minute",
+  "note": "GitHub-hosted runner per-minute rates (standard + larger runners) and the 2026 self-hosted platform fee. Rates are list prices for Team/Enterprise Cloud; cross-check the source before any billing decision. Keys under hostedPerMinute are vCPU core counts as strings.",
+  "hostedPerMinute": {
+    "linux": { "1": 0.002, "2": 0.006, "4": 0.012, "8": 0.022, "32": 0.082, "96": 0.252 },
+    "linux-arm": { "2": 0.005, "4": 0.008, "8": 0.014, "64": 0.098 },
+    "windows": { "2": 0.010, "4": 0.022, "8": 0.042, "96": 0.552 },
+    "windows-arm": { "2": 0.010 },
+    "macos": { "3": 0.062, "5": 0.102 }
+  },
+  "baselineCores": { "linux": 2, "linux-arm": 2, "windows": 2, "windows-arm": 2, "macos": 3 },
+  "selfHostedPlatformFeePerMinute": 0.002,
+  "selfHostedFeeEffective": "2026-03-01",
+  "includedMinutesPerMonth": { "free": 2000, "team": 3000 },
+  "sources": [
+    {
+      "what": "hosted standard + larger runner per-minute rates and SKUs",
+      "url": "https://docs.github.com/en/billing/reference/actions-runner-pricing"
+    },
+    {
+      "what": "self-hosted $0.002/min Actions cloud platform charge, effective 2026-03-01",
+      "url": "https://github.blog/changelog/2025-12-16-coming-soon-simpler-pricing-and-a-better-experience-for-github-actions/"
+    }
+  ]
+}

@@ -10,6 +10,9 @@ import {
   checkJobFanout,
   checkMatrixOverkill,
   checkScheduleFrequency,
+  checkOversizedRunner,
+  checkSelfHostedFee,
+  checkDockerBuildNoCache,
 } from "../src/checks/ci/rules.js";
 import type { CheckContext } from "../src/types.js";
 
@@ -242,6 +245,96 @@ describe("checkScheduleFrequency — exact cost and severity", () => {
     // 2 runs/day > 1 => finding; 720min interval >> 15min threshold => warn not high
     expect(findings).toHaveLength(1);
     expect(findings[0]?.severity).toBe("warn");
+  });
+});
+
+// ------------------------------------------------------------------
+// (c2) ci/oversized-runner — quantified larger-runner premium
+// ------------------------------------------------------------------
+
+describe("checkOversizedRunner — quantified premium", () => {
+  const oversizedPath = path.join(FIXTURES, "workflow-oversized-runner.yml");
+
+  it("flags a 32-core larger runner with a real $/mo premium", () => {
+    const model = parseWorkflow(oversizedPath);
+    const findings = checkOversizedRunner(model, defaultCtx);
+    expect(findings).toHaveLength(1);
+    const f = findings[0]!;
+    expect(f.rule).toBe("ci/oversized-runner");
+    // premium = linux 32-core 0.082 - baseline 2-core 0.006 = 0.076 /min
+    // est = 0.076 * assumedMinutesPerRun(5) * runsPerMonth(300) = 114
+    expect(f.estMonthlyUsd).toBeCloseTo(114, 0);
+    expect(f.severity).toBe("warn");
+    expect(f.autofixable).toBe(false);
+  });
+
+  it("does not flag a standard runner", () => {
+    const model = parseWorkflow(path.join(FIXTURES, "workflow-clean.yml"));
+    expect(checkOversizedRunner(model, defaultCtx)).toHaveLength(0);
+  });
+});
+
+// ------------------------------------------------------------------
+// (c2b) ci/self-hosted-fee — 2026 self-hosted platform fee quantified
+// ------------------------------------------------------------------
+
+describe("checkSelfHostedFee — platform fee quantified", () => {
+  const selfHostedPath = path.join(FIXTURES, "workflow-self-hosted.yml");
+
+  it("flags a self-hosted job with the $0.002/min platform fee", () => {
+    const model = parseWorkflow(selfHostedPath);
+    const findings = checkSelfHostedFee(model, defaultCtx);
+    expect(findings).toHaveLength(1);
+    const f = findings[0]!;
+    expect(f.rule).toBe("ci/self-hosted-fee");
+    // fee 0.002/min * assumedMinutesPerRun(5) * runsPerMonth(300) = 3.00
+    expect(f.estMonthlyUsd).toBeCloseTo(3, 5);
+    expect(f.severity).toBe("warn");
+    expect(f.autofixable).toBe(false);
+  });
+
+  it("does not flag a GitHub-hosted runner", () => {
+    const model = parseWorkflow(path.join(FIXTURES, "workflow-clean.yml"));
+    expect(checkSelfHostedFee(model, defaultCtx)).toHaveLength(0);
+  });
+});
+
+// ------------------------------------------------------------------
+// (c2c) ci/docker-build-no-cache — uncached docker build step
+// ------------------------------------------------------------------
+
+describe("checkDockerBuildNoCache — uncached docker build", () => {
+  const dockerPath = path.join(FIXTURES, "workflow-docker-no-cache.yml");
+
+  it("flags an uncached `docker build` step but not the buildx-cached one", () => {
+    const model = parseWorkflow(dockerPath);
+    const findings = checkDockerBuildNoCache(model, defaultCtx);
+    expect(findings).toHaveLength(1);
+    const f = findings[0]!;
+    expect(f.rule).toBe("ci/docker-build-no-cache");
+    expect(f.detail).toMatch(/build-bad/);
+    // build-minute savings are not inferable from YAML — heuristic, 0 cost
+    expect(f.estMonthlyUsd).toBe(0);
+    expect(f.severity).toBe("warn");
+    expect(f.autofixable).toBe(false);
+  });
+
+  it("does not flag a workflow without docker builds", () => {
+    const model = parseWorkflow(path.join(FIXTURES, "workflow-clean.yml"));
+    expect(checkDockerBuildNoCache(model, defaultCtx)).toHaveLength(0);
+  });
+});
+
+// ------------------------------------------------------------------
+// (c3) parser — array runs-on (self-hosted) capture (R9 limitation fix)
+// ------------------------------------------------------------------
+
+describe("parser — array runs-on", () => {
+  const selfHostedPath = path.join(FIXTURES, "workflow-self-hosted.yml");
+
+  it("captures array runs-on labels as a joined string, not 'unknown'", () => {
+    const model = parseWorkflow(selfHostedPath);
+    expect(model.jobs["build"]?.runsOn).toBe("self-hosted, linux, x64");
   });
 });
 
