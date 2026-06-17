@@ -22,7 +22,8 @@
     "scripts/install.cjs"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/bundle.mjs",
+    "check:dist": "node scripts/check-dist.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -41,6 +42,7 @@
     "@eslint/js": "^9",
     "@types/js-yaml": "^4",
     "@types/node": "^22",
+    "esbuild": "0.28.1",
     "eslint": "^9",
     "tsx": "^4",
     "typescript": "^5",

@@ -8,6 +8,8 @@ export function registerAudit(program: Command): void {
     .option("--ci-only", "Check CI minutes only")
     .option("--crons-only", "Check cron schedules only")
     .option("--json", "Output report as JSON instead of Markdown")
+    .option("--site", "Also run read-only live-site checks for workspaces with a site URL")
+    .option("--substitutions", "Suggest cheaper capability-equal tools (cross-tool swaps)")
     .option("--providers <list>", "Provider billing checks: comma-separated ids or 'all'")
     .action(
       async (
@@ -17,6 +19,8 @@ export function registerAudit(program: Command): void {
           ciOnly?: boolean;
           cronsOnly?: boolean;
           json?: boolean;
+          site?: boolean;
+          substitutions?: boolean;
           providers?: string;
         },
       ) => {
@@ -34,23 +38,19 @@ export function registerAudit(program: Command): void {
           }
         }
 
-        const flags =
-          providers !== undefined
-            ? {
-                ciOnly: opts.ciOnly === true,
-                cronsOnly: opts.cronsOnly === true,
-                providers,
-              }
-            : {
-                ciOnly: opts.ciOnly === true,
-                cronsOnly: opts.cronsOnly === true,
-              };
+        const base = {
+          ciOnly: opts.ciOnly === true,
+          cronsOnly: opts.cronsOnly === true,
+          substitutions: opts.substitutions === true,
+        };
+        const flags = providers !== undefined ? { ...base, providers } : base;
 
         await runAuditAndReport({
           workspaces,
           all: opts.all === true,
           flags,
           format: opts.json === true ? "json" : "markdown",
+          site: opts.site === true,
         });
       },
     );

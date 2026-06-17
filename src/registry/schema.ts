@@ -22,6 +22,8 @@ export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 const WorkspaceEntrySchema = z.object({
   providers: z.array(z.string()),
   active: z.record(z.string(), z.unknown()),
+  // Optional live-site URL for `costguard audit --site` (read-only site checks).
+  site: z.string().optional(),
 });
 
 export const WorkspaceRegistrySchema = z.object({

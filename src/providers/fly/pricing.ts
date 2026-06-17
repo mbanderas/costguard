@@ -1,7 +1,6 @@
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { knowledgePath } from "../../knowledge/paths.js";
 
 // ------------------------------------------------------------------
 // Sourced Fly.io cost facts, loaded from the versioned knowledge fact file
@@ -19,11 +18,7 @@ const FlyPricingSchema = z.object({
 
 export type FlyPricing = z.infer<typeof FlyPricingSchema>;
 
-// knowledge/fly.json sits at the repo/package root. This module compiles to
-// dist/providers/fly/pricing.js and runs from src/providers/fly via tsx; both
-// are three levels below the root, so the same relative path resolves.
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FACT_PATH = path.join(here, "..", "..", "..", "knowledge", "fly.json");
+const FACT_PATH = knowledgePath("fly.json");
 
 let cached: FlyPricing | undefined;
 

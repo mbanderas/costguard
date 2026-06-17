@@ -1,7 +1,6 @@
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { knowledgePath } from "../../knowledge/paths.js";
 
 // ------------------------------------------------------------------
 // Sourced Sentry plan economics, loaded from the versioned knowledge fact
@@ -29,11 +28,7 @@ const SentryPricingSchema = z.object({
 export type SentryPricing = z.infer<typeof SentryPricingSchema>;
 export type SentryPlanId = "developer" | "team" | "business";
 
-// knowledge/sentry.json sits at the repo/package root. This module compiles to
-// dist/providers/sentry/pricing.js and runs from src/providers/sentry via tsx;
-// both are three levels below the root, so the same relative path resolves.
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FACT_PATH = path.join(here, "..", "..", "..", "knowledge", "sentry.json");
+const FACT_PATH = knowledgePath("sentry.json");
 
 let cached: SentryPricing | undefined;
 

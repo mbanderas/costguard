@@ -1,7 +1,6 @@
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { knowledgePath } from "../../knowledge/paths.js";
 
 // ------------------------------------------------------------------
 // Sourced GitHub Actions runner pricing, loaded from the versioned
@@ -25,12 +24,7 @@ const RunnerPricingSchema = z.object({
 
 export type RunnerPricing = z.infer<typeof RunnerPricingSchema>;
 
-// knowledge/github-actions.json sits at the repo/package root. This module
-// compiles to dist/checks/ci/runnerPricing.js and runs from src/checks/ci via
-// tsx; both are three levels below the root, so the same relative path resolves
-// in either layout.
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FACT_PATH = path.join(here, "..", "..", "..", "knowledge", "github-actions.json");
+const FACT_PATH = knowledgePath("github-actions.json");
 
 let cached: RunnerPricing | undefined;
 

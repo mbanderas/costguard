@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "provider": "site",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "Live-site signal -> host transfer cost mapping. Per-host outbound transfer (egress / Fast Data Transfer / bandwidth) rate and whether the host bills it. Cloudflare Pages static egress is free (performance-only, $0). Estimated $/mo multiplies sourced $/GB by `assumedMonthlyVisits` page-equivalent fetches; the visit count is an explicit assumption, not a measured number — treat $/mo as directional, not an invoice. Cross-check the source before any billing decision.",
+  "assumedMonthlyVisits": 50000,
+  "compressibleSavingsRatio": 0.7,
+  "hosts": {
+    "vercel": { "transferUsdPerGb": 0.15, "billsTransfer": true, "label": "Vercel Fast Data Transfer" },
+    "netlify": { "transferUsdPerGb": 0.133, "billsTransfer": true, "label": "Netlify bandwidth (credit plan)" },
+    "cloudflare": { "transferUsdPerGb": 0, "billsTransfer": false, "label": "Cloudflare Pages static egress (free)" },
+    "unknown": { "transferUsdPerGb": 0, "billsTransfer": false, "label": "Unknown host (no sourced transfer rate)" }
+  },
+  "thresholds": {
+    "oversizedImageBytes": 512000,
+    "largeTextAssetBytes": 307200,
+    "minCacheMaxAgeSeconds": 86400
+  },
+  "sources": [
+    {
+      "what": "Vercel Fast Data Transfer $0.15/GB (region-dependent 0.15-0.35); Pro includes 1 TB FDT",
+      "url": "https://vercel.com/docs/pricing"
+    },
+    {
+      "what": "Netlify bandwidth ~20 credits/GB on the $20 / 3000-credit Pro plan (~$0.00667/credit) => ~$0.133/GB",
+      "url": "https://www.netlify.com/pricing/"
+    },
+    {
+      "what": "Cloudflare Pages static asset requests and egress are free (no bandwidth charge); performance-only signal",
+      "url": "https://developers.cloudflare.com/pages/functions/pricing/"
+    }
+  ]
+}

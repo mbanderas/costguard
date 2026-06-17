@@ -5,6 +5,8 @@ export interface AuditAndReportOptions {
   all: boolean;
   flags: AuditFlags;
   format?: "markdown" | "json";
+  /** Also run read-only live-site checks for workspaces that declare a site URL. */
+  site?: boolean;
 }
 
 
@@ -41,6 +43,16 @@ export async function runAuditAndReport(opts: AuditAndReportOptions): Promise<vo
   const registry = loadRegistry();
   const selection = resolveSelection(registry, workspaces, all);
   const findings = await runAudit({ selection, config, flags });
+
+  if (opts.site === true) {
+    const { collectSiteFindings } = await import("../../checks/site/auditSite.js");
+    const targets = selection.map((s) => ({
+      workspace: s.workspace,
+      site: registry.workspaces[s.workspace]?.site,
+    }));
+    findings.push(...(await collectSiteFindings(targets)));
+  }
+
   const run = saveRun(findings);
 
   const total = totalMonthlyUsd(findings);

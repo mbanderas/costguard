@@ -1,7 +1,6 @@
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { knowledgePath } from "../../knowledge/paths.js";
 
 // ------------------------------------------------------------------
 // Sourced Vercel plan economics, loaded from the versioned knowledge fact
@@ -35,12 +34,7 @@ const VercelPricingSchema = z.object({
 
 export type VercelPricing = z.infer<typeof VercelPricingSchema>;
 
-// knowledge/vercel.json sits at the repo/package root. This module compiles to
-// dist/providers/vercel/pricing.js and runs from src/providers/vercel via tsx;
-// both are three levels below the root, so the same relative path resolves in
-// either layout.
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FACT_PATH = path.join(here, "..", "..", "..", "knowledge", "vercel.json");
+const FACT_PATH = knowledgePath("vercel.json");
 
 let cached: VercelPricing | undefined;
 

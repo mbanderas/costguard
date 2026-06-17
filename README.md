@@ -23,12 +23,14 @@ Commands below invoke the built CLI as `node dist/cli/index.js <command>`. If yo
 ## Use from your coding agent (plugins + portable installer)
 
 CostGuard ships as a native plugin for Claude Code and Codex, and a portable
-installer drops a thin adapter into any other agent CLI. Every path drives the
-**same built CLI**, so build it first from the checkout:
+installer drops a thin adapter into any other agent CLI. The plugin ships a
+**prebuilt, self-contained `dist/cli/index.js`** (all dependencies bundled), so a
+marketplace install runs with **no build and no `npm install`** — load and go.
+You only need a build when developing from source:
 
 ```sh
 pnpm install
-pnpm build
+pnpm build      # only for local development from source
 ```
 
 > The plugins and adapters run `node "<costguard>/dist/cli/index.js"` (Claude
@@ -107,6 +109,8 @@ node dist/cli/index.js audit --all --providers all
 | `--all` | Audit all registered workspaces |
 | `--ci-only` | Run only the CI-minute checks |
 | `--crons-only` | Run only the cron-frequency checks |
+| `--site` | Also run read-only live-site checks for workspaces whose registry entry has a `site` URL (see [site](#site)) |
+| `--substitutions` | Add cross-tool `<provider>/cheaper-alternative` suggestions (e.g. a static Vercel/Netlify Pro site → Cloudflare Pages), each with a sourced saving, migration effort, and lock-in caveat |
 | `--providers <list>` | Add read-only provider billing checks. Comma-separated ids (`github,supabase,railway,netlify,neon`) or `all`. A provider is only contacted when its token is present (see [Environment variables](#environment-variables)); others are silently skipped. |
 | `--json` | Emit JSON instead of Markdown |
 
@@ -129,6 +133,43 @@ node dist/cli/index.js providers --check
 ```
 
 `--check` is the default action.
+
+### discover
+
+Detect which providers a repo actually uses — from config files, `package.json`
+dependencies, and environment-variable **names** (never values, never secrets).
+Covers all 13 wired providers plus inngest, so you don't hand-edit the registry.
+
+```sh
+# List detected providers + the evidence for each (default dir: .)
+node dist/cli/index.js discover ./my-app
+
+# JSON: { dir, providers, detections }
+node dist/cli/index.js discover ./my-app --json
+
+# Union-merge detected providers into ./workspaces.json (non-destructive)
+node dist/cli/index.js discover ./my-app --write
+```
+
+`--write` preserves any existing providers, the `active{}` block, and every other
+workspace; it only adds newly detected providers for `basename(dir)`.
+
+### site
+
+Audit a **live URL** for cost-relevant waste — read-only and GET-only (no
+browser, no form submit, no credential replay). It flags transfer weight,
+oversized images, missing compression, weak cache headers, and render-blocking
+scripts. Each finding carries a sourced `$/mo` when the host bills transfer
+(Vercel/Netlify) or an explicit `$0` performance note when it doesn't (Cloudflare
+Pages static / unknown host) — never a fabricated number.
+
+```sh
+node dist/cli/index.js site https://example.com
+node dist/cli/index.js site https://example.com --json
+```
+
+Use `audit --site` to run the same checks for every workspace whose
+`workspaces.json` entry declares a `site` URL.
 
 ### registry
 

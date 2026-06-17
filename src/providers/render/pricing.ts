@@ -1,7 +1,6 @@
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { knowledgePath } from "../../knowledge/paths.js";
 
 // ------------------------------------------------------------------
 // Sourced Render compute economics, loaded from the versioned knowledge fact
@@ -28,11 +27,7 @@ const RenderPricingSchema = z.object({
 
 export type RenderPricing = z.infer<typeof RenderPricingSchema>;
 
-// knowledge/render.json sits at the repo/package root. This module compiles to
-// dist/providers/render/pricing.js and runs from src/providers/render via tsx;
-// both are three levels below the root, so the same relative path resolves.
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FACT_PATH = path.join(here, "..", "..", "..", "knowledge", "render.json");
+const FACT_PATH = knowledgePath("render.json");
 
 let cached: RenderPricing | undefined;
 

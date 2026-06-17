@@ -2,6 +2,8 @@
 import { Command } from "commander";
 import { registerAudit } from "./commands/auditCmd.js";
 import { registerScan } from "./commands/scan.js";
+import { registerDiscover } from "./commands/discoverCmd.js";
+import { registerSite } from "./commands/siteCmd.js";
 import { registerRegistry } from "./commands/registry.js";
 import { registerReport } from "./commands/report.js";
 import { registerProviders } from "./commands/providersCmd.js";
@@ -19,6 +21,8 @@ program
 
 registerAudit(program);
 registerScan(program);
+registerDiscover(program);
+registerSite(program);
 registerRegistry(program);
 registerReport(program);
 registerProviders(program);

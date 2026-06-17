@@ -1,7 +1,6 @@
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { knowledgePath } from "../../knowledge/paths.js";
 
 // ------------------------------------------------------------------
 // Sourced MongoDB Atlas cluster economics, loaded from the versioned knowledge
@@ -28,11 +27,7 @@ const AtlasPricingSchema = z.object({
 
 export type AtlasPricing = z.infer<typeof AtlasPricingSchema>;
 
-// knowledge/atlas.json sits at the repo/package root. This module compiles to
-// dist/providers/atlas/pricing.js and runs from src/providers/atlas via tsx;
-// both are three levels below the root, so the same relative path resolves.
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FACT_PATH = path.join(here, "..", "..", "..", "knowledge", "atlas.json");
+const FACT_PATH = knowledgePath("atlas.json");
 
 let cached: AtlasPricing | undefined;
 

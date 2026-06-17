@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "provider": "substitutions",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "Cross-tool substitution matrix: equivalence classes of capability-equal tools with sourced 2026 base pricing, migration friction, and lock-in caveats. A swap is suggested only WITHIN a class (same capability) when a sourced alternative is materially cheaper (>= minMaterialSavingsUsd). Savings use base/plan fees, not measured usage — treat as directional and verify workload fit before switching. Tools that are NOT 1:1 (Postgres vs MongoDB; Redis vs eventually-consistent KV; issue-tracking vs metrics-APM) are deliberately kept in SEPARATE classes and never cross-recommended (R13).",
+  "minMaterialSavingsUsd": 5,
+  "classes": [
+    {
+      "id": "static-hosting",
+      "capability": "Static / JAMstack site hosting: global CDN for static assets plus a build pipeline, no always-on server. Edge/SSR functions are NOT part of this equivalence and must be migrated separately.",
+      "tools": [
+        {
+          "provider": "vercel",
+          "plan": "Pro",
+          "baseMonthlyUsd": 20,
+          "migration": "low",
+          "lockIn": "Edge Middleware and Serverless/Edge Functions are Vercel-specific; static build output is fully portable.",
+          "source": { "what": "Vercel Pro $20/mo platform fee", "url": "https://vercel.com/docs/plans/pro-plan" }
+        },
+        {
+          "provider": "netlify",
+          "plan": "Pro (credit)",
+          "baseMonthlyUsd": 20,
+          "migration": "low",
+          "lockIn": "Netlify Functions/Edge Functions and _redirects syntax are platform-specific; static output is portable.",
+          "source": { "what": "Netlify Pro $20/mo (3000 credits)", "url": "https://www.netlify.com/pricing/" }
+        },
+        {
+          "provider": "cloudflare",
+          "plan": "Pages (static)",
+          "baseMonthlyUsd": 0,
+          "migration": "low",
+          "lockIn": "Static hosting and egress are free; Pages Functions use the Workers runtime if server logic is later needed.",
+          "source": { "what": "Cloudflare Pages static hosting + egress free", "url": "https://developers.cloudflare.com/pages/functions/pricing/" }
+        }
+      ]
+    }
+  ],
+  "nonSubstitutes": [
+    { "pair": "Postgres <-> MongoDB Atlas", "why": "relational vs document model — not a drop-in swap" },
+    { "pair": "Redis <-> Cloudflare KV", "why": "KV is an eventually-consistent string store; not equivalent for write-heavy or Redis-data-structure workloads" },
+    { "pair": "Sentry <-> Datadog / Better Stack", "why": "issue-tracking workflow vs metrics-first APM — different capability" }
+  ],
+  "sources": [
+    { "what": "Vercel Pro plan base fee", "url": "https://vercel.com/docs/plans/pro-plan" },
+    { "what": "Netlify pricing (credit plans)", "url": "https://www.netlify.com/pricing/" },
+    { "what": "Cloudflare Pages free static hosting + egress", "url": "https://developers.cloudflare.com/pages/functions/pricing/" }
+  ]
+}

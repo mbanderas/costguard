@@ -15,6 +15,8 @@ export interface AuditFlags {
   ciOnly: boolean;
   cronsOnly: boolean;
   providers?: string[] | "all";
+  /** Emit cross-tool `<provider>/cheaper-alternative` substitution findings. */
+  substitutions?: boolean;
 }
 
 export interface SelectedWorkspace {
@@ -143,6 +145,15 @@ export async function runAudit(args: {
         } catch (err) {
           allFindings.push(makeCheckErrorFinding(workspace, id, err));
         }
+      }
+    }
+
+    if (flags.substitutions === true && entry !== undefined) {
+      try {
+        const { substitutionFindings } = await import("./substitution/reconcile.js");
+        allFindings.push(...substitutionFindings(workspace, entry.providers));
+      } catch (err) {
+        allFindings.push(makeCheckErrorFinding(workspace, "substitution", err));
       }
     }
   }

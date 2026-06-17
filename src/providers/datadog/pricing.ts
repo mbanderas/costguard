@@ -1,7 +1,6 @@
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { knowledgePath } from "../../knowledge/paths.js";
 
 // ------------------------------------------------------------------
 // Sourced Datadog economics, loaded from the versioned knowledge fact file
@@ -25,11 +24,7 @@ const DatadogPricingSchema = z.object({
 export type DatadogPricing = z.infer<typeof DatadogPricingSchema>;
 export type DatadogPlanId = "pro" | "enterprise";
 
-// knowledge/datadog.json sits at the repo/package root. This module compiles to
-// dist/providers/datadog/pricing.js and runs from src/providers/datadog via tsx;
-// both are three levels below the root, so the same relative path resolves.
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FACT_PATH = path.join(here, "..", "..", "..", "knowledge", "datadog.json");
+const FACT_PATH = knowledgePath("datadog.json");
 
 let cached: DatadogPricing | undefined;
 

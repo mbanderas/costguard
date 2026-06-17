@@ -1,7 +1,6 @@
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { knowledgePath } from "../../knowledge/paths.js";
 
 // ------------------------------------------------------------------
 // Sourced Upstash Redis economics, loaded from the versioned knowledge fact
@@ -27,11 +26,7 @@ const UpstashPricingSchema = z.object({
 
 export type UpstashPricing = z.infer<typeof UpstashPricingSchema>;
 
-// knowledge/upstash.json sits at the repo/package root. This module compiles to
-// dist/providers/upstash/pricing.js and runs from src/providers/upstash via tsx;
-// both are three levels below the root, so the same relative path resolves.
-const here = path.dirname(fileURLToPath(import.meta.url));
-const FACT_PATH = path.join(here, "..", "..", "..", "knowledge", "upstash.json");
+const FACT_PATH = knowledgePath("upstash.json");
 
 let cached: UpstashPricing | undefined;
 
