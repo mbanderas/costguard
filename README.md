@@ -36,8 +36,9 @@ and the MCP server anywhere.
 /plugin install costguard@costguard
 ```
 
-Adds `/costguard-audit`, `/costguard-fix`, and the full `costguard` skill (scan,
-providers, registry, report, digest). No build step, no `npm install`.
+Adds `/costguard-audit`, `/costguard-fix`, `/costguard-live`, and the full
+`costguard` skill (scan, providers, registry, report, digest). No build step, no
+`npm install`.
 
 ### Codex
 
@@ -72,10 +73,15 @@ npx -y -p @costguard/costguard-mcp costguard
 package name matches its bin entry point — drop it straight into any MCP host's
 server config.
 
-> **Other CLIs / Desktop apps** — a portable installer drops a thin `/costguard`
-> adapter into Cursor, Gemini CLI, Cline, Windsurf, or a Codex project
-> (`node scripts/install.cjs --target <tool>`; `--target auto` detects the host).
-> It is no-clobber and idempotent. See [`scripts/install.cjs --help`](scripts/install.cjs).
+> **Other CLIs / Desktop apps** — one command drops a thin `/costguard` adapter
+> into Cursor, Gemini CLI, Cline, Windsurf, or a Codex project:
+>
+> ```sh
+> npx -y -p @costguard/costguard-mcp costguard install --target <host|auto>
+> ```
+>
+> `--target auto` detects the host; the adapter is no-clobber and idempotent. Run
+> `costguard install --help` for the full target list.
 
 ---
 
@@ -128,7 +134,209 @@ guarantee.
 
 ---
 
-## Commands
+## Using CostGuard
+
+Every host drives the same read-only engine — reach for it the native way. Each
+block below is self-contained; use the one for your host.
+
+### Claude Code
+
+Three slash commands plus the full `costguard` skill (scan, providers, registry,
+report, digest):
+
+- `/costguard-audit` — audit a workspace for CI/cron and cloud-spend waste.
+- `/costguard-fix` — preview or apply the safe in-repo CI fixes (dry-run first).
+- `/costguard-live` — opt-in, consent-gated live billing read for a provider.
+
+### Codex
+
+Invoke the bundled `costguard` skill by name, then say what you want:
+
+- "Use the costguard skill to audit my-app for CI waste."
+- "With costguard, show a dry-run fix for web-app's workflows."
+- "Run a costguard provider billing check across api-service."
+
+### Cursor / Gemini CLI / Cline / Windsurf
+
+Install the `/costguard` adapter once for your host:
+
+```sh
+costguard install --target cursor
+costguard install --target gemini
+costguard install --target cline
+costguard install --target windsurf
+```
+
+Then drive it with any `costguard` arguments:
+
+```text
+/costguard audit my-app
+/costguard fix my-app --apply
+```
+
+(If `costguard` is not yet on your PATH, prefix the install command with
+`npx -y -p @costguard/costguard-mcp `.)
+
+### Any MCP host
+
+Copy-paste CostGuard's MCP server into your host's config — no checkout:
+
+```json
+{
+  "mcpServers": {
+    "costguard": {
+      "command": "npx",
+      "args": ["-y", "@costguard/costguard-mcp"],
+      "env": {
+        "GITHUB_TOKEN": "…",
+        "SUPABASE_ACCESS_TOKEN": "…",
+        "RAILWAY_TOKEN": "…",
+        "NETLIFY_AUTH_TOKEN": "…",
+        "NEON_API_KEY": "…"
+      }
+    }
+  }
+}
+```
+
+Every token is optional and read-only; a provider with no token is skipped. See
+[Environment variables](#environment-variables) for the full list and aliases.
+
+`npx -y @costguard/costguard-mcp` (no `-p`, no subcommand) starts the MCP
+**server** for this config; `npx -y -p @costguard/costguard-mcp costguard
+<subcommand>` runs the **CLI**.
+
+---
+
+## Environment variables
+
+Provider tokens are read **only** from the process environment or a gitignored
+`.env` in the CostGuard workspace. They are never printed, logged, or committed.
+Each provider module runs only when one of its tokens is present; offline, the
+modules are fully exercised by fixtures. All tokens are used **read-only**.
+
+| Variable (any one of) | Provider | Used for |
+|-----------------------|----------|----------|
+| `GITHUB_TOKEN` / `GH_TOKEN` | github | Actions usage per repo (read-only billing PAT) |
+| `SUPABASE_ACCESS_TOKEN` / `SUPABASE_TOKEN` | supabase | Projects, compute size, PITR, branches |
+| `RAILWAY_TOKEN` / `RAILWAY_API_TOKEN` | railway | Services, deploys, usage (read-only GraphQL) |
+| `NETLIFY_AUTH_TOKEN` / `NETLIFY_TOKEN` | netlify | Sites, build minutes, bandwidth |
+| `NEON_API_KEY` / `NEON_API_TOKEN` | neon | Projects, branches, compute hours |
+| `COSTGUARD_DIGEST_WEBHOOK` | — | Optional `digest --post` destination (inert in this build) |
+
+Use `providers --check` to confirm which tokens the environment exposes without
+revealing any value.
+
+---
+
+## Provider modules
+
+Half B ships five read-only, opt-in provider modules. Each reads live billed
+resources, reconciles them against the registry `active{}` allowlist, and emits
+`orphaned` and `over-provisioned` findings with a best-effort `$/mo`.
+
+| Module | Reads | Flags |
+|--------|-------|-------|
+| **github** | Actions usage per repo | top minute-burners; repos over budget |
+| **supabase** | Projects, compute size, PITR/add-ons, branches | running preview branches; compute/PITR drift vs registry |
+| **railway** | Services, deploys, usage (read-only GraphQL queries) | idle services; deploys never torn down |
+| **netlify** | Sites, build minutes, bandwidth | build-minute spend; runaway bandwidth |
+| **neon** | Projects, branches, compute hours | idle branches; orphaned (defunct but billed) projects |
+
+All provider access is HTTP `GET`; the railway module uses GraphQL **queries**
+only, guarded against mutations. No module ever issues a write or delete call. A
+module activates only when its token (above) is present; otherwise it is skipped.
+
+---
+
+## Security / read-only posture
+
+CostGuard is built to be safe to run anywhere, including on a schedule:
+
+- **Read-only provider access only.** No write or mutating API call is ever issued. Provider tokens are read-only and are never printed, logged, or committed.
+- **Secrets stay out of the repo.** Tokens are read from the environment or a gitignored `.env*` only. `providers --check` reports presence by variable name, never by value.
+- **The static half needs no credentials.** `audit` (without `--providers`) and `scan` read only local files and are always safe to run.
+- **`fix` is in-repo and dry-run by default.** It edits only `.github/workflows/*` files in the target workspace, never provider or cloud state, and writes nothing until `--apply`.
+- **Outward actions are inert and gated.** `fix --open-pr` and `digest --post` refuse to act without an explicit opt-in flag *and* the matching credential, and even then perform no git push or network post in this build.
+
+---
+
+## How workspaces.json works
+
+`workspaces.json` is the registry of projects CostGuard tracks. `registry --init`
+scans `workspacesRoot` (default: `~/Workspaces`) and writes a fresh file with
+auto-detected `providers` arrays (GitHub, Netlify, Supabase, etc.) and blank
+`active{}` blocks. A starter [`workspaces.example.json`](workspaces.example.json)
+ships with this repo.
+
+```json
+{
+  "root": "~/Workspaces",
+  "workspaces": {
+    "my-app": {
+      "providers": ["github", "netlify"],
+      "active": {}
+    }
+  }
+}
+```
+
+The `active{}` block is the allowlist used by the Half B provider checks: any live
+resource not listed there is flagged as **orphaned**, and any resource larger or
+more capable than declared is flagged as **over-provisioned**. Leave it empty if
+you only run the static half; the provider modules then have nothing to reconcile
+against.
+
+---
+
+## Configuration
+
+Create `costguard.config.json` in the project root to override defaults:
+
+```json
+{
+  "workspacesRoot": "~/Workspaces",
+  "defaults": {
+    "cronThresholdMinutes": 15,
+    "ciMinuteRate": 0.008,
+    "assumedPushesPerDay": 10,
+    "assumedMinutesPerRun": 5
+  },
+  "perWorkspace": {
+    "my-app": {
+      "cronThresholdMinutes": 30
+    }
+  }
+}
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `cronThresholdMinutes` | `15` | Crons running more often than this threshold are flagged |
+| `ciMinuteRate` | `0.008` | USD per runner-minute (GitHub-hosted Linux) |
+| `assumedPushesPerDay` | `10` | Estimated daily push cadence for cost projection |
+| `assumedMinutesPerRun` | `5` | Assumed wasted minutes per redundant CI run |
+
+Per-workspace overrides in `perWorkspace` merge on top of `defaults`.
+
+---
+
+## Scheduler template
+
+A monthly digest can be wired to GitHub Actions via the documented, **inert**
+scheduler template `templates/costguard-digest.yml`.
+
+- It lives under `templates/` — **not** `.github/workflows/` — so it never runs automatically and is not enabled by this project.
+- **To activate:** a human copies it into `.github/workflows/` in the target repo and supplies the required secrets (e.g. `COSTGUARD_DIGEST_WEBHOOK`).
+- **To roll back:** delete the copy from `.github/workflows/`.
+
+Activating the template is a deliberate human action outside CostGuard's own runtime.
+
+---
+
+## CLI reference
+
+These flags apply to the `costguard` CLI, available via `npm i -g @costguard/costguard-mcp` or `npx -y -p @costguard/costguard-mcp costguard <subcommand>`.
 
 All commands operate on the `workspaces.json` registry in the project root.
 Workspace selection is by directory name; `--all` selects every registered
@@ -317,132 +525,6 @@ costguard digest --all --out digest-2026-05.md
 | `--json` | Emit JSON instead of Markdown |
 | `--out <file>` | Write the digest to a local file instead of stdout |
 | `--post` | **Gated and inert.** Requires **both** the `--post` flag and a `COSTGUARD_DIGEST_WEBHOOK` env var; even then it performs **no** network post. It only reports the message it *would* post. |
-
----
-
-## Environment variables
-
-Provider tokens are read **only** from the process environment or a gitignored
-`.env` in the CostGuard workspace. They are never printed, logged, or committed.
-Each provider module runs only when one of its tokens is present; offline, the
-modules are fully exercised by fixtures. All tokens are used **read-only**.
-
-| Variable (any one of) | Provider | Used for |
-|-----------------------|----------|----------|
-| `GITHUB_TOKEN` / `GH_TOKEN` | github | Actions usage per repo (read-only billing PAT) |
-| `SUPABASE_ACCESS_TOKEN` / `SUPABASE_TOKEN` | supabase | Projects, compute size, PITR, branches |
-| `RAILWAY_TOKEN` / `RAILWAY_API_TOKEN` | railway | Services, deploys, usage (read-only GraphQL) |
-| `NETLIFY_AUTH_TOKEN` / `NETLIFY_TOKEN` | netlify | Sites, build minutes, bandwidth |
-| `NEON_API_KEY` / `NEON_API_TOKEN` | neon | Projects, branches, compute hours |
-| `COSTGUARD_DIGEST_WEBHOOK` | — | Optional `digest --post` destination (inert in this build) |
-
-Use `providers --check` to confirm which tokens the environment exposes without
-revealing any value.
-
----
-
-## Provider modules
-
-Half B ships five read-only, opt-in provider modules. Each reads live billed
-resources, reconciles them against the registry `active{}` allowlist, and emits
-`orphaned` and `over-provisioned` findings with a best-effort `$/mo`.
-
-| Module | Reads | Flags |
-|--------|-------|-------|
-| **github** | Actions usage per repo | top minute-burners; repos over budget |
-| **supabase** | Projects, compute size, PITR/add-ons, branches | running preview branches; compute/PITR drift vs registry |
-| **railway** | Services, deploys, usage (read-only GraphQL queries) | idle services; deploys never torn down |
-| **netlify** | Sites, build minutes, bandwidth | build-minute spend; runaway bandwidth |
-| **neon** | Projects, branches, compute hours | idle branches; orphaned (defunct but billed) projects |
-
-All provider access is HTTP `GET`; the railway module uses GraphQL **queries**
-only, guarded against mutations. No module ever issues a write or delete call. A
-module activates only when its token (above) is present; otherwise it is skipped.
-
----
-
-## Security / read-only posture
-
-CostGuard is built to be safe to run anywhere, including on a schedule:
-
-- **Read-only provider access only.** No write or mutating API call is ever issued. Provider tokens are read-only and are never printed, logged, or committed.
-- **Secrets stay out of the repo.** Tokens are read from the environment or a gitignored `.env*` only. `providers --check` reports presence by variable name, never by value.
-- **The static half needs no credentials.** `audit` (without `--providers`) and `scan` read only local files and are always safe to run.
-- **`fix` is in-repo and dry-run by default.** It edits only `.github/workflows/*` files in the target workspace, never provider or cloud state, and writes nothing until `--apply`.
-- **Outward actions are inert and gated.** `fix --open-pr` and `digest --post` refuse to act without an explicit opt-in flag *and* the matching credential, and even then perform no git push or network post in this build.
-
----
-
-## How workspaces.json works
-
-`workspaces.json` is the registry of projects CostGuard tracks. `registry --init`
-scans `workspacesRoot` (default: `~/Workspaces`) and writes a fresh file with
-auto-detected `providers` arrays (GitHub, Netlify, Supabase, etc.) and blank
-`active{}` blocks. A starter [`workspaces.example.json`](workspaces.example.json)
-ships with this repo.
-
-```json
-{
-  "root": "~/Workspaces",
-  "workspaces": {
-    "my-app": {
-      "providers": ["github", "netlify"],
-      "active": {}
-    }
-  }
-}
-```
-
-The `active{}` block is the allowlist used by the Half B provider checks: any live
-resource not listed there is flagged as **orphaned**, and any resource larger or
-more capable than declared is flagged as **over-provisioned**. Leave it empty if
-you only run the static half; the provider modules then have nothing to reconcile
-against.
-
----
-
-## Configuration
-
-Create `costguard.config.json` in the project root to override defaults:
-
-```json
-{
-  "workspacesRoot": "~/Workspaces",
-  "defaults": {
-    "cronThresholdMinutes": 15,
-    "ciMinuteRate": 0.008,
-    "assumedPushesPerDay": 10,
-    "assumedMinutesPerRun": 5
-  },
-  "perWorkspace": {
-    "my-app": {
-      "cronThresholdMinutes": 30
-    }
-  }
-}
-```
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `cronThresholdMinutes` | `15` | Crons running more often than this threshold are flagged |
-| `ciMinuteRate` | `0.008` | USD per runner-minute (GitHub-hosted Linux) |
-| `assumedPushesPerDay` | `10` | Estimated daily push cadence for cost projection |
-| `assumedMinutesPerRun` | `5` | Assumed wasted minutes per redundant CI run |
-
-Per-workspace overrides in `perWorkspace` merge on top of `defaults`.
-
----
-
-## Scheduler template
-
-A monthly digest can be wired to GitHub Actions via the documented, **inert**
-scheduler template `templates/costguard-digest.yml`.
-
-- It lives under `templates/` — **not** `.github/workflows/` — so it never runs automatically and is not enabled by this project.
-- **To activate:** a human copies it into `.github/workflows/` in the target repo and supplies the required secrets (e.g. `COSTGUARD_DIGEST_WEBHOOK`).
-- **To roll back:** delete the copy from `.github/workflows/`.
-
-Activating the template is a deliberate human action outside CostGuard's own runtime.
 
 ---
 
