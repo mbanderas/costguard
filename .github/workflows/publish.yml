@@ -1,0 +1,57 @@
+# Publish costguard-mcp to npm on a pushed v* tag.
+# Tag the release commit (e.g. `git tag v0.1.0 && git push origin v0.1.0`).
+# Requires repo secret NPM_TOKEN (npm Automation/granular publish token).
+# Pushing the tag is a deliberate release action — adding this workflow does
+# not publish anything on its own.
+name: Publish
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # npm provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Tag matches package.json version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "FAIL tag v$tag != package.json $pkg" >&2
+            exit 1
+          fi
+          echo "version $pkg matches tag"
+
+      - name: Build both bundles
+        run: pnpm build
+
+      - name: Committed dist is fresh
+        run: pnpm check:dist
+
+      - name: Test
+        run: pnpm test
+
+      - name: Publish
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

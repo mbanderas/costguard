@@ -1,0 +1,60 @@
+# CI: typecheck, lint, tests, committed-dist staleness guard, JSON parse.
+# Matrix runs on Ubuntu and Windows. pnpm with a frozen lockfile.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  checks:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Committed dist is fresh
+        run: pnpm check:dist
+
+      - name: JSON parse check
+        shell: bash
+        run: |
+          git ls-files '*.json' -z | xargs -0 node -e '
+            const fs = require("fs");
+            let bad = 0;
+            for (const f of process.argv.slice(1)) {
+              if (/(^|\/)tsconfig[^\/]*\.json$/.test(f)) continue; // JSONC, skip
+              try { JSON.parse(fs.readFileSync(f, "utf8")); }
+              catch (e) { console.error("FAIL " + f + ": " + e.message); bad = 1; }
+            }
+            if (!bad) console.log("all JSON parses");
+            process.exitCode = bad;
+          '
