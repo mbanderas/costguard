@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "provider": "cloudflare",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "Cloudflare R2 object storage economics (egress-free). Storage billed per GB-month; operations billed per million in two classes (A = write/list, B = read). Free tier: 10 GB storage, 1M Class A ops, 10M Class B ops. Cross-check the source before any billing decision.",
+  "r2": {
+    "storageUsdPerGbMonth": 0.015,
+    "freeStorageGb": 10,
+    "classAUsdPerMillion": 4.50,
+    "freeClassAOps": 1000000,
+    "classBUsdPerMillion": 0.36,
+    "freeClassBOps": 10000000
+  },
+  "sources": [
+    {
+      "what": "R2 storage $0.015/GB-month; Class A 1M free / Class B 10M free per month",
+      "url": "https://r2-calculator.cloudflare.com"
+    },
+    {
+      "what": "R2 egress-free; 10 GB-month storage at $0.015/GB-month",
+      "url": "https://www.cloudflare.com/products/r2/"
+    },
+    {
+      "what": "R2 pricing: Class A $4.50/million, Class B $0.36/million requests",
+      "url": "https://developers.cloudflare.com/r2/pricing/"
+    }
+  ]
+}

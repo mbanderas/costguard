@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "provider": "vercel",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "Vercel Pro/Hobby plan economics and build CPU rate. Pro is a $20/mo platform fee including one deploying seat and $20 usage credit; each additional deploying (Owner/Member) seat is $20/mo. Cross-check the source before any billing decision.",
+  "plans": {
+    "pro": {
+      "platformFeeUsd": 20,
+      "includedDeployingSeats": 1,
+      "additionalSeatUsd": 20,
+      "usageCreditUsd": 20,
+      "includedFastDataTransferGb": 1024,
+      "includedEdgeRequests": 10000000
+    },
+    "hobby": {
+      "includedCpuHours": 4,
+      "includedProvisionedMemoryGbHours": 360,
+      "includedFunctionInvocations": 1000000
+    }
+  },
+  "buildCpuMinuteUsd": 0.0035,
+  "sources": [
+    {
+      "what": "build $0.0035 per CPU minute; Pro/Hobby usage units and overage model",
+      "url": "https://vercel.com/docs/pricing"
+    },
+    {
+      "what": "Hobby free tier: 4 CPU-hours, 360 GB-hours, 1M function invocations/month",
+      "url": "https://vercel.com/docs/plans/hobby"
+    },
+    {
+      "what": "Pro plan: $20/mo platform fee, $20/mo per additional deploying seat, 1 TB Fast Data Transfer + 10M Edge Requests included",
+      "url": "https://vercel.com/docs/plans/pro-plan"
+    }
+  ]
+}

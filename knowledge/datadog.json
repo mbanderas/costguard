@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "provider": "datadog",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "Datadog per-host monthly rates (annual billing) plus log/span volume rates. Datadog uses a high-water-mark host model (measures hourly, drops top 1%, bills the next highest). APM Pro ~$31-35/host, Enterprise ~$40/host; Infrastructure ~$15/host. Cross-check the source before any billing decision.",
+  "infraHostMonthlyUsd": 15,
+  "apmHostMonthlyUsd": { "pro": 31, "enterprise": 40 },
+  "ingestedLogGbUsd": 0.10,
+  "indexedSpansPer1mUsd": 1.27,
+  "sources": [
+    {
+      "what": "Datadog pricing by product and billing unit",
+      "url": "https://www.datadoghq.com/pricing/list/"
+    },
+    {
+      "what": "APM $31-35/host (Pro annual), $40/host (Enterprise); 150 GB/host included",
+      "url": "https://www.finout.io/blog/datadog-pricing-explained"
+    },
+    {
+      "what": "Infrastructure monitoring from $15/host/month",
+      "url": "https://signoz.io/blog/datadog-pricing/"
+    },
+    {
+      "what": "APM $31/host including 1M indexed spans; real-world cost scenarios",
+      "url": "https://coralogix.com/blog/datadog-pricing-explained-with-real-world-scenarios/"
+    }
+  ]
+}

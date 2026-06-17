@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "provider": "atlas",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "MongoDB Atlas cluster tier ladder. M0 is the perpetual free shared tier; M2/M5 are low-cost shared tiers; M10+ are dedicated clusters billed hourly (monthlyUsd = hourly x 720h). Dedicated-tier monthlies vary by cloud/region; list values are representative. Cross-check the source before any billing decision.",
+  "hoursPerMonth": 720,
+  "tiers": [
+    { "name": "M0", "storageGb": 0.5, "monthlyUsd": 0, "dedicated": false },
+    { "name": "M2", "storageGb": 2, "monthlyUsd": 9, "dedicated": false },
+    { "name": "M5", "storageGb": 5, "monthlyUsd": 25, "dedicated": false },
+    { "name": "M10", "storageGb": 10, "monthlyUsd": 57.6, "dedicated": true },
+    { "name": "M20", "storageGb": 20, "monthlyUsd": 144, "dedicated": true }
+  ],
+  "sources": [
+    {
+      "what": "M10 $0.08/hr, M20 $0.20/hr dedicated cluster rates",
+      "url": "https://www.vantage.sh/blog/documentdb-vs-mongodb-price-comparison"
+    },
+    {
+      "what": "M10 spec: 10 GB storage, 2 GB RAM, 2 vCPUs; cluster tier breakdown",
+      "url": "https://cloudchipr.com/blog/mongodb-pricing"
+    },
+    {
+      "what": "Perpetual free tier (M0, 512 MB) and shared tiers from ~$9/mo",
+      "url": "https://www.mongodb.com/products/platform/atlas-cloud-providers/aws/pricing"
+    }
+  ]
+}

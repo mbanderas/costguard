@@ -4,6 +4,14 @@ import { supabaseModule } from "./supabase/index.js";
 import { railwayModule } from "./railway/index.js";
 import { netlifyModule } from "./netlify/index.js";
 import { neonModule } from "./neon/index.js";
+import { vercelModule } from "./vercel/index.js";
+import { sentryModule } from "./sentry/index.js";
+import { upstashModule } from "./upstash/index.js";
+import { atlasModule } from "./atlas/index.js";
+import { cloudflareModule } from "./cloudflare/index.js";
+import { flyModule } from "./fly/index.js";
+import { renderModule } from "./render/index.js";
+import { datadogModule } from "./datadog/index.js";
 
 // ------------------------------------------------------------------
 // Provider module registry
@@ -15,6 +23,14 @@ export const PROVIDER_MODULES: Readonly<Record<string, ProviderModule>> = {
   railway: railwayModule,
   netlify: netlifyModule,
   neon: neonModule,
+  vercel: vercelModule,
+  sentry: sentryModule,
+  upstash: upstashModule,
+  atlas: atlasModule,
+  cloudflare: cloudflareModule,
+  fly: flyModule,
+  render: renderModule,
+  datadog: datadogModule,
 };
 
 export function getProviderModule(id: string): ProviderModule | undefined {

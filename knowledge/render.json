@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "provider": "render",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "Render web-service compute plans (per always-on instance) and bandwidth overage. Workspace subscription (Hobby free / Pro $25 / Scale $499) is separate. Standard ($25, 1 vCPU / 2 GB) covers most non-prod workloads. Cross-check the source before any billing decision.",
+  "computePlans": [
+    { "name": "free", "monthlyUsd": 0, "vcpu": 0.1, "ramGb": 0.5 },
+    { "name": "starter", "monthlyUsd": 7, "vcpu": 0.5, "ramGb": 0.5 },
+    { "name": "standard", "monthlyUsd": 25, "vcpu": 1, "ramGb": 2 },
+    { "name": "pro", "monthlyUsd": 85, "vcpu": 2, "ramGb": 4 },
+    { "name": "pro_plus", "monthlyUsd": 175, "vcpu": 4, "ramGb": 8 }
+  ],
+  "bandwidthOverageUsdPerGb": 0.15,
+  "sources": [
+    {
+      "what": "Compute plans: Starter $7, Standard $25, Pro $85, Pro Plus $175; bandwidth overage $0.15/GB",
+      "url": "https://render.com/pricing"
+    },
+    {
+      "what": "New workspace plans (Apr 2026): Hobby free, Pro $25, Scale $499; included bandwidth 5/25 GB",
+      "url": "https://render.com/docs/new-workspace-plans"
+    },
+    {
+      "what": "Render flat compute plans vs Railway consumption pricing comparison",
+      "url": "https://render.com/articles/render-vs-railway"
+    }
+  ]
+}

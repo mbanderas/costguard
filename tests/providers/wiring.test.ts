@@ -157,13 +157,21 @@ describe("enabledProviderIds", () => {
     expect(result).toEqual(["github", "supabase"]);
   });
 
-  it("registers all five providers (github, supabase, railway, netlify, neon)", () => {
+  it("registers all thirteen providers (incl. vercel, sentry, upstash, atlas, cloudflare, fly, render, datadog)", () => {
     expect(Object.keys(PROVIDER_MODULES).sort()).toEqual([
+      "atlas",
+      "cloudflare",
+      "datadog",
+      "fly",
       "github",
       "neon",
       "netlify",
       "railway",
+      "render",
+      "sentry",
       "supabase",
+      "upstash",
+      "vercel",
     ]);
   });
 

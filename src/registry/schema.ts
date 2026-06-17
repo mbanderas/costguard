@@ -8,6 +8,13 @@ export const KNOWN_PROVIDERS = [
   "neon",
   "vercel",
   "inngest",
+  "sentry",
+  "upstash",
+  "atlas",
+  "cloudflare",
+  "fly",
+  "render",
+  "datadog",
 ] as const;
 
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];

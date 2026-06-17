@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "provider": "upstash",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "Upstash Redis pay-as-you-go vs fixed plan economics. PAYG bills per command; fixed plans give unlimited commands under a TPS cap. First 1GB storage is free on PAYG. A free command tier exists but its exact volume varies by region/offering and is NOT modeled (conservative; negligible vs waste-case command volume). Cross-check the source before any billing decision.",
+  "paygPer100kCommandsUsd": 0.20,
+  "paygStorageUsdPerGbMonth": 0.25,
+  "paygFreeStorageGb": 1,
+  "fixedPlans": [
+    { "name": "250mb", "storageGb": 0.25, "monthlyUsd": 10 },
+    { "name": "1gb", "storageGb": 1, "monthlyUsd": 20 },
+    { "name": "5gb", "storageGb": 5, "monthlyUsd": 100 }
+  ],
+  "sources": [
+    {
+      "what": "PAYG $0.20 per 100k requests; storage limit and TPS cap (Fly-hosted Upstash)",
+      "url": "https://fly.io/docs/upstash/redis/"
+    },
+    {
+      "what": "Free tier for prototypes; pay-as-you-go from $0.20 per 100K commands",
+      "url": "https://upstash.com/redis"
+    },
+    {
+      "what": "Redis pricing comparison 2026: first 1 GB storage free on PAYG; fixed plan ladder",
+      "url": "https://upstash.com/blog/redis-pricing-comparison-every-major-provider-in-2026-with-numbers"
+    }
+  ]
+}

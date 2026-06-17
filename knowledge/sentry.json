@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "provider": "sentry",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "Sentry plan error quotas and pay-as-you-go per-error overage. Overage is only billed when on-demand/PAYG budget is enabled; on reserved volume, excess events are dropped rather than billed. Cross-check the source before any billing decision.",
+  "plans": {
+    "developer": { "monthlyUsd": 0, "includedErrors": 5000 },
+    "team": { "monthlyUsd": 26, "includedErrors": 50000 },
+    "business": { "monthlyUsd": 80, "includedErrors": 50000 }
+  },
+  "errorOverageUsdPerEvent": 0.00036,
+  "sources": [
+    {
+      "what": "Free Developer ($0, 5k errors) and Team ($26/mo, 50k errors) plan quotas; pay-as-you-go pricing",
+      "url": "https://sentry.io/pricing/"
+    },
+    {
+      "what": "Pricing & billing reference (on-demand budget, per-category overage)",
+      "url": "https://docs.sentry.io/pricing/"
+    },
+    {
+      "what": "Plan breakdown: 5K errors free, 50k Team; ~$0.00036/error 50k-100k PAYG band",
+      "url": "https://last9.io/blog/sentry-pricing/"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "provider": "fly",
+  "updated": "2026-06-17",
+  "currency": "USD",
+  "note": "Fly.io cost facts. Dedicated IPv4 addresses are billed per app per month; outbound transfer is billed per GB (North America/Europe; higher elsewhere), ingress free. Persistent volumes bill hourly even when machines are stopped (volume per-GB rate not included here — declare it before quantifying detached volumes). Cross-check the source before any billing decision.",
+  "dedicatedIpv4UsdPerMonth": 2,
+  "outboundUsdPerGb": 0.02,
+  "sources": [
+    {
+      "what": "Dedicated IPv4 $2/mo per app; outbound $0.02/GB (NA/EU); volumes billed hourly",
+      "url": "https://fly.io/docs/about/cost-management/"
+    }
+  ]
+}
