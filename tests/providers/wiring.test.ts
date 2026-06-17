@@ -34,7 +34,7 @@ function makeRegistry(names: string[]): WorkspaceRegistry {
     workspaces[name] = {
       providers: ["github", "supabase"],
       active: {
-        github: { repo: "mbanderas/gameframe-v2" },
+        github: { repo: "mbanderas/web-app" },
         supabase: {
           projects: ["decl1111"],
           compute: "micro",

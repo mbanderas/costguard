@@ -3,6 +3,8 @@ node_modules/
 .env*
 .costguard/
 _*
+# user-local workspace registry (real private names); ship workspaces.example.json instead
+workspaces.json
 coverage/
 reports/
 .claude/

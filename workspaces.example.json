@@ -1,0 +1,29 @@
+{
+  "root": "~/Workspaces",
+  "workspaces": {
+    "web-app": {
+      "providers": ["github", "supabase", "netlify"],
+      "active": {
+        "github": { "repo": "your-org/web-app" },
+        "supabase": {
+          "projects": ["your-project-ref"],
+          "compute": "micro",
+          "pitr": false,
+          "branches": []
+        },
+        "netlify": { "sites": ["your-netlify-site"] }
+      }
+    },
+    "api-service": {
+      "providers": ["github", "railway"],
+      "active": {
+        "github": { "repo": "your-org/api-service" },
+        "railway": { "services": ["backend"] }
+      }
+    },
+    "marketing-site": {
+      "providers": ["netlify"],
+      "active": {}
+    }
+  }
+}

@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const usageFixture: unknown = require("../fixtures/github/usage-user.json");
 
 const BASE_CTX = {
-  workspace: "gameframe-v2",
+  workspace: "web-app",
   workspaceDir: ".",
   config: {
     cronThresholdMinutes: 15,
@@ -22,7 +22,7 @@ const BASE_CTX = {
 const BASE_ENTRY = {
   providers: ["github"],
   active: {
-    github: { repo: "mbanderas/gameframe-v2" },
+    github: { repo: "mbanderas/web-app" },
   },
 };
 
@@ -52,7 +52,7 @@ describe("githubModule.check — over-budget + orphan scenario", () => {
     expect(overBudget?.severity).toBe("high");
     expect(overBudget?.provider).toBe("github");
     expect(overBudget?.autofixable).toBe(false);
-    expect(overBudget?.workspace).toBe("gameframe-v2");
+    expect(overBudget?.workspace).toBe("web-app");
     expect(typeof overBudget?.estMonthlyUsd).toBe("number");
     expect(typeof overBudget?.title).toBe("string");
     expect(typeof overBudget?.detail).toBe("string");
@@ -62,7 +62,7 @@ describe("githubModule.check — over-budget + orphan scenario", () => {
     expect(orphan?.severity).toBe("warn");
     expect(orphan?.provider).toBe("github");
     expect(orphan?.autofixable).toBe(false);
-    expect(orphan?.workspace).toBe("gameframe-v2");
+    expect(orphan?.workspace).toBe("web-app");
     expect(typeof orphan?.estMonthlyUsd).toBe("number");
     expect(typeof orphan?.title).toBe("string");
     expect(typeof orphan?.detail).toBe("string");
@@ -92,7 +92,7 @@ describe("githubModule.check — clean case (budget high enough, no orphans)", (
           quantity: 500,
           unitType: "minutes",
           netAmount: 0,
-          repositoryName: "gameframe-v2",
+          repositoryName: "web-app",
         },
       ],
     };

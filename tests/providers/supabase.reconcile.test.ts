@@ -23,9 +23,9 @@ const branchesOrphFixture = loadFixture("branches-orph.json");
 function makeArgs(activeSupabase: unknown) {
   return {
     ctx: {
-      workspace: "gameframe-v2",
+      workspace: "web-app",
       workspaceDir: ".",
-      config: resolveWorkspaceConfig(DEFAULT_CONFIG, "gameframe-v2"),
+      config: resolveWorkspaceConfig(DEFAULT_CONFIG, "web-app"),
     },
     entry: {
       providers: ["supabase"],
@@ -148,9 +148,9 @@ describe("supabaseModule.check — absent active", () => {
   it("returns [] when supabase active entry is absent", async () => {
     const args = {
       ctx: {
-        workspace: "gameframe-v2",
+        workspace: "web-app",
         workspaceDir: ".",
-        config: resolveWorkspaceConfig(DEFAULT_CONFIG, "gameframe-v2"),
+        config: resolveWorkspaceConfig(DEFAULT_CONFIG, "web-app"),
       },
       entry: {
         providers: ["supabase"],
