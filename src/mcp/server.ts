@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // costguard MCP server: a thin, host-agnostic capability surface over the existing
 // engine. Bootstraps an McpServer, registers every tool from the registry, and
-// serves over stdio. Holds NO engine logic and NO console.* (stdio servers must
-// keep stdout clean — the SDK logs over the protocol/stderr); each registered
-// tool adapter wraps exactly one engine function.
+// serves over stdio. Holds NO engine logic and writes nothing to stdout (the
+// stdio transport owns stdout; the SDK logs over the protocol/stderr); each
+// registered tool adapter wraps exactly one engine function.
 import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
