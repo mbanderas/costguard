@@ -54,6 +54,7 @@
     "build:mcp": "node scripts/bundle-mcp.mjs",
     "check:dist": "node scripts/check-dist.cjs",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:dist",
+    "ci:docker": "gh act workflow_dispatch -j checks",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

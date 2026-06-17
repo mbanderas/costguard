@@ -587,6 +587,21 @@ git config core.hooksPath .githooks   # once per clone
 git push --no-verify                  # bypass for a single push (e.g. docs-only)
 ```
 
+#### Run the real workflow in Docker (act)
+
+To execute the actual `ci.yml` locally in a container — the closest thing to
+GitHub's runner without spending minutes — use [`act`](https://github.com/nektos/act)
+with Docker Desktop running:
+
+```sh
+gh extension install nektos/gh-act    # once per machine
+pnpm ci:docker                        # runs the ubuntu-latest leg via .actrc
+```
+
+`act` runs Linux containers only, so it covers the **ubuntu-latest** matrix leg;
+the **windows-latest** leg is covered by `pnpm verify` on the host. The first run
+pulls the runner image (~1GB), then caches it.
+
 ---
 
 ## Links

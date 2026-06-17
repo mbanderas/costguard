@@ -1,0 +1,6 @@
+# Default flags for `act` (local GitHub Actions runner via Docker).
+# Medium image: has node, git, and common tooling preinstalled (~1GB, pulled once).
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+# act runs Linux containers only — restrict the matrix to the ubuntu leg.
+# (The windows-latest leg is covered locally by `pnpm verify` on the host.)
+--matrix os:ubuntu-latest
