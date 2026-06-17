@@ -126,9 +126,10 @@ describe("ingest_live_reading handler", () => {
     return (res.structuredContent as { finding: Finding }).finding;
   }
 
-  it("parses a monthly figure from a named key into a cost Finding", () => {
+  it("parses a monthly figure from a named key into a cost Finding (no-playbook provider)", () => {
+    // neon has no playbook -> ingest falls back to the named-key set.
     const f = finding(
-      ingestLiveReadingHandler({ provider: "vercel", reading: { planId: "p", values: { total: "$42.50" } } }),
+      ingestLiveReadingHandler({ provider: "neon", reading: { planId: "p", values: { total: "$42.50" } } }),
     );
     expect(f.kind).toBe("cost");
     expect(f.estMonthlyUsd).toBeCloseTo(42.5, 5);
@@ -137,7 +138,7 @@ describe("ingest_live_reading handler", () => {
 
   it("unparseable reading -> diagnostic Finding with estMonthlyUsd 0 (never fabricates)", () => {
     const f = finding(
-      ingestLiveReadingHandler({ provider: "vercel", reading: { planId: "p", values: { note: "no number here" }, raw: "n/a" } }),
+      ingestLiveReadingHandler({ provider: "neon", reading: { planId: "p", values: { note: "no number here" }, raw: "n/a" } }),
     );
     expect(f.kind).toBe("diagnostic");
     expect(f.estMonthlyUsd).toBe(0);

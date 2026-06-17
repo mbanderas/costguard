@@ -43465,8 +43465,51 @@ function liveConsentGranted(confirmLive) {
   return confirmLive === true;
 }
 
+// src/mcp/live/playbooks/vercel.ts
+var vercelPlaybook = {
+  billingUrl: "https://vercel.com/account/billing",
+  readOnlySnippet: [
+    "await page.goto('https://vercel.com/account/billing', { waitUntil: 'networkidle' });",
+    "const monthlyTotal = await page.getByText(/\\$[0-9,.]+/).first().innerText();",
+    "return { monthlyTotal };"
+  ].join("\n"),
+  parseSpec: {
+    fields: [
+      {
+        name: "monthlyTotal",
+        selectorHint: "current billing-period total amount shown on the billing page",
+        kind: "currency"
+      }
+    ],
+    monthlyUsdField: "monthlyTotal"
+  }
+};
+
+// src/mcp/live/playbooks/render.ts
+var renderPlaybook = {
+  billingUrl: "https://dashboard.render.com/billing",
+  readOnlySnippet: [
+    "await page.goto('https://dashboard.render.com/billing', { waitUntil: 'networkidle' });",
+    "const monthlyTotal = await page.getByText(/\\$[0-9,.]+/).first().innerText();",
+    "return { monthlyTotal };"
+  ].join("\n"),
+  parseSpec: {
+    fields: [
+      {
+        name: "monthlyTotal",
+        selectorHint: "current month-to-date charges shown on the billing page",
+        kind: "currency"
+      }
+    ],
+    monthlyUsdField: "monthlyTotal"
+  }
+};
+
 // src/mcp/live/playbooks/index.ts
-var PLAYBOOKS = {};
+var PLAYBOOKS = {
+  vercel: vercelPlaybook,
+  render: renderPlaybook
+};
 function playbookFor(provider) {
   return PLAYBOOKS[provider];
 }
