@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="300" viewBox="0 0 720 300"
+     font-family="ui-sans-serif, -apple-system, Segoe UI, Roboto, sans-serif">
+
+  <!-- Background -->
+  <rect width="720" height="300" fill="#0B1F17"/>
+
+  <!-- Title -->
+  <text x="32" y="34" fill="#E6EDEA" font-size="15" font-weight="600" letter-spacing="-0.2">Redundant CI runs: before vs after</text>
+
+  <!-- Legend (top-right) -->
+  <rect x="538" y="18" width="12" height="12" fill="#E5534B" rx="2"/>
+  <text x="554" y="29" fill="#8FA89B" font-size="11">Before</text>
+  <rect x="608" y="18" width="12" height="12" fill="#2E9E6B" rx="2"/>
+  <text x="624" y="29" fill="#8FA89B" font-size="11">After</text>
+
+  <!--
+    Chart area:
+      left margin (Y-axis labels): 64px
+      right margin: 32px
+      usable width: 720 - 64 - 32 = 624px
+      3 groups, each 208px wide
+      column pair per group: 2 columns, gap between them = 8px, outer padding = 40px
+      column width = (208 - 80 - 8) / 2 = 60px ... let's do:
+        group width = 208, left pad = 44, col = 52, gap = 16, right pad = 44
+
+      Y-axis: bottom = 240, top = 60 → height = 180
+      Max value = 120 (api-service before)
+      Scale: 180 / 120 = 1.5 px per unit
+
+      Groups (x origin from left edge of chart = 64):
+        Group 1 (my-app):    x_left = 64,   center = 168
+        Group 2 (web-app):   x_left = 272,  center = 376
+        Group 3 (api-service): x_left = 480, center = 584
+
+      For each group, before col starts at x_left + 44, after col = x_left + 44 + 52 + 16
+
+      Values: my-app before=100 after=25, web-app before=90 after=20, api-service before=120 after=30
+      Heights at 1.5x: 150, 37.5, 135, 30, 180, 45
+
+      Before bars (bottom=240):
+        my-app:      x=108, y=240-150=90,  h=150, w=52
+        web-app:     x=316, y=240-135=105, h=135, w=52
+        api-service: x=524, y=240-180=60,  h=180, w=52
+
+      After bars:
+        my-app:      x=176, y=240-37.5=202.5 → 203, h=37, w=52
+        web-app:     x=384, y=240-30=210,     h=30,  w=52
+        api-service: x=592, y=240-45=195,     h=45,  w=52
+  -->
+
+  <!-- Y-axis label (rotated) -->
+  <text x="14" y="160" fill="#8FA89B" font-size="11" text-anchor="middle"
+        transform="rotate(-90, 14, 160)">relative CI minutes / month</text>
+
+  <!-- Y-axis gridlines and tick labels: 0, 40, 80, 120 -->
+  <!-- 0 → y=240, 40 → y=240-60=180, 80 → y=240-120=120, 120 → y=240-180=60 -->
+  <line x1="64" y1="240" x2="688" y2="240" stroke="#8FA89B" stroke-width="1" opacity="0.3"/>
+  <line x1="64" y1="180" x2="688" y2="180" stroke="#0F2A1F" stroke-width="1"/>
+  <line x1="64" y1="120" x2="688" y2="120" stroke="#0F2A1F" stroke-width="1"/>
+  <line x1="64" y1="60"  x2="688" y2="60"  stroke="#0F2A1F" stroke-width="1"/>
+
+  <text x="58" y="244" fill="#8FA89B" font-size="11" text-anchor="end">0</text>
+  <text x="58" y="184" fill="#8FA89B" font-size="11" text-anchor="end">40</text>
+  <text x="58" y="124" fill="#8FA89B" font-size="11" text-anchor="end">80</text>
+  <text x="58" y="64"  fill="#8FA89B" font-size="11" text-anchor="end">120</text>
+
+  <!-- Group 1: my-app -->
+  <!-- Before -->
+  <rect x="108" y="90"  width="52" height="150" fill="#E5534B" rx="3"/>
+  <!-- After -->
+  <rect x="176" y="203" width="52" height="37"  fill="#2E9E6B" rx="3"/>
+  <!-- X label -->
+  <text x="168" y="260" fill="#E6EDEA" font-size="12" text-anchor="middle">my-app</text>
+
+  <!-- Group 2: web-app -->
+  <!-- Before -->
+  <rect x="316" y="105" width="52" height="135" fill="#E5534B" rx="3"/>
+  <!-- After -->
+  <rect x="384" y="210" width="52" height="30"  fill="#2E9E6B" rx="3"/>
+  <!-- X label -->
+  <text x="376" y="260" fill="#E6EDEA" font-size="12" text-anchor="middle">web-app</text>
+
+  <!-- Group 3: api-service -->
+  <!-- Before -->
+  <rect x="524" y="60"  width="52" height="180" fill="#E5534B" rx="3"/>
+  <!-- After -->
+  <rect x="592" y="195" width="52" height="45"  fill="#2E9E6B" rx="3"/>
+  <!-- X label -->
+  <text x="584" y="260" fill="#E6EDEA" font-size="12" text-anchor="middle">api-service</text>
+
+  <!-- Footnote -->
+  <text x="32" y="286" fill="#8FA89B" font-size="10.5">Illustrative proportions from observed repositories.</text>
+
+</svg>
