@@ -5,6 +5,7 @@ import os from "node:os";
 import type { Finding } from "../src/types.js";
 import { sortFindings, renderMarkdown, renderJson } from "../src/reporter/index.js";
 import { saveRun, loadLastRun } from "../src/reporter/persist.js";
+import { renderDigestMarkdown } from "../src/digest/renderer.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -263,5 +264,121 @@ describe("saveRun / loadLastRun", () => {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "last-run.json"), JSON.stringify({ bad: true }));
     expect(() => loadLastRun()).toThrow(/invalid/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Diagnostic kind segregation — renderJson totalMonthlyUsd
+// ---------------------------------------------------------------------------
+
+describe("renderJson — diagnostic kind exclusion", () => {
+  const META = { generatedAt: "2026-06-17T00:00:00.000Z" };
+
+  it("totalMonthlyUsd excludes diagnostic findings", () => {
+    const diagnostic = makeFinding({
+      rule: "ci/actionlint-unavailable",
+      estMonthlyUsd: 5,
+      kind: "diagnostic",
+    });
+    const json = renderJson([HIGH_FINDING, diagnostic], META);
+    const parsed = JSON.parse(json) as { totalMonthlyUsd: number; findings: Finding[] };
+    // Only HIGH_FINDING ($12) should count; diagnostic ($5) excluded from total
+    expect(parsed.totalMonthlyUsd).toBeCloseTo(12, 5);
+    // Both findings still present in the array
+    expect(parsed.findings).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Diagnostic kind segregation — renderMarkdown Notices section
+// ---------------------------------------------------------------------------
+
+describe("renderMarkdown — diagnostic kind exclusion", () => {
+  const META = { generatedAt: "2026-06-17T00:00:00.000Z" };
+
+  it("emits a ## Notices section when diagnostic findings are present", () => {
+    const diagnostic = makeFinding({
+      rule: "ci/actionlint-unavailable",
+      estMonthlyUsd: 5,
+      kind: "diagnostic",
+      title: "actionlint not on PATH",
+      detail: "Install actionlint",
+    });
+    const md = renderMarkdown([HIGH_FINDING, diagnostic], META);
+    expect(md).toContain("## Notices");
+    expect(md).toContain("ci/actionlint-unavailable");
+  });
+
+  it("diagnostic finding does not appear in workspace cost group", () => {
+    const diagnostic = makeFinding({
+      rule: "ci/actionlint-unavailable",
+      workspace: "ws-a",
+      estMonthlyUsd: 5,
+      kind: "diagnostic",
+      title: "actionlint not on PATH",
+    });
+    const md = renderMarkdown([HIGH_FINDING, diagnostic], META);
+    // Grand total must be $12 (not $17)
+    expect(md).toContain("$12.00/mo");
+    expect(md).not.toMatch(/\$17\.00/);
+  });
+
+  it("grand total excludes diagnostic estMonthlyUsd", () => {
+    const diagnostic = makeFinding({
+      rule: "ci/actionlint-unavailable",
+      estMonthlyUsd: 5,
+      kind: "diagnostic",
+    });
+    const md = renderMarkdown([HIGH_FINDING, diagnostic], META);
+    expect(md).toMatch(/\$12\.00\/mo/);
+  });
+
+  it("no Notices section when no diagnostics present", () => {
+    const md = renderMarkdown([HIGH_FINDING, WARN_FINDING], META);
+    expect(md).not.toContain("## Notices");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Diagnostic kind segregation — renderDigestMarkdown
+// ---------------------------------------------------------------------------
+
+describe("renderDigestMarkdown — diagnostic kind exclusion", () => {
+  const META = { generatedAt: "2026-06-17T00:00:00.000Z", period: "2026-06" };
+
+  it("highCount excludes diagnostic findings", () => {
+    const diagnostic = makeFinding({
+      rule: "ci/actionlint-unavailable",
+      severity: "high",
+      estMonthlyUsd: 5,
+      kind: "diagnostic",
+    });
+    // HIGH_FINDING is high + cost, diagnostic is high but diagnostic kind
+    const md = renderDigestMarkdown([HIGH_FINDING, diagnostic], META);
+    // Only 1 high (HIGH_FINDING), diagnostic excluded
+    expect(md).toMatch(/1 high/);
+  });
+
+  it("total excludes diagnostic findings", () => {
+    const diagnostic = makeFinding({
+      rule: "ci/actionlint-unavailable",
+      estMonthlyUsd: 5,
+      kind: "diagnostic",
+    });
+    const md = renderDigestMarkdown([HIGH_FINDING, diagnostic], META);
+    // Total should be $12.00 (HIGH_FINDING only)
+    expect(md).toContain("$12.00");
+    expect(md).not.toMatch(/\$17\.00/);
+  });
+
+  it("finding count excludes diagnostic findings", () => {
+    const diagnostic = makeFinding({
+      rule: "ci/actionlint-unavailable",
+      estMonthlyUsd: 5,
+      kind: "diagnostic",
+    });
+    const md = renderDigestMarkdown([HIGH_FINDING, diagnostic], META);
+    // Only 1 cost finding
+    expect(md).toMatch(/1 finding/);
   });
 });

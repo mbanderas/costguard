@@ -2,6 +2,18 @@ import type { Finding } from "../types.js";
 import { totalMonthlyUsd } from "../orchestrator.js";
 
 // ---------------------------------------------------------------------------
+// Kind predicate
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true when a finding participates in cost totals and counts.
+ * A finding is a cost finding when `kind` is omitted or explicitly `"cost"`.
+ */
+export function isCost(f: Finding): boolean {
+  return f.kind === undefined || f.kind === "cost";
+}
+
+// ---------------------------------------------------------------------------
 // Severity ordering for tie-breaks
 // ---------------------------------------------------------------------------
 
@@ -60,13 +72,18 @@ function renderFinding(f: Finding): string {
 /**
  * Render findings as plain Markdown (no ANSI/color).
  * Workspaces grouped by subtotal $ desc; findings within each group by $ desc.
- * Empty findings → clean "No findings" report.
+ * Diagnostic findings (kind === "diagnostic") are excluded from totals and
+ * workspace groups and rendered separately in a ## Notices section.
+ * Empty cost findings → clean "No findings" report.
  */
 export function renderMarkdown(
   findings: Finding[],
   meta: { generatedAt: string },
 ): string {
-  const grand = totalMonthlyUsd(findings);
+  const costFindings = findings.filter(isCost);
+  const diagnostics = findings.filter((f) => !isCost(f));
+
+  const grand = totalMonthlyUsd(costFindings);
   const sections: string[] = [];
 
   sections.push(`# CostGuard Audit Report`);
@@ -76,36 +93,45 @@ export function renderMarkdown(
   sections.push(`**Total estimated waste: ${formatUsd(grand)}**`);
   sections.push(``);
 
-  if (findings.length === 0) {
+  if (costFindings.length === 0) {
     sections.push(`No findings — all checks passed.`);
-    return sections.join("\n");
-  }
-
-  // Group by workspace
-  const groups = new Map<string, Finding[]>();
-  for (const f of findings) {
-    const group = groups.get(f.workspace) ?? [];
-    group.push(f);
-    groups.set(f.workspace, group);
-  }
-
-  // Sort groups by subtotal desc
-  const sortedGroups = [...groups.entries()].sort(([, aFindings], [, bFindings]) => {
-    const aTotal = totalMonthlyUsd(aFindings);
-    const bTotal = totalMonthlyUsd(bFindings);
-    return bTotal - aTotal;
-  });
-
-  for (const [workspace, wsFindings] of sortedGroups) {
-    const subtotal = totalMonthlyUsd(wsFindings);
-    sections.push(`## Workspace: ${workspace} (${formatUsd(subtotal)})`);
-    sections.push(``);
-
-    const sorted = sortFindings(wsFindings);
-    for (const f of sorted) {
-      sections.push(renderFinding(f));
-      sections.push(``);
+  } else {
+    // Group by workspace
+    const groups = new Map<string, Finding[]>();
+    for (const f of costFindings) {
+      const group = groups.get(f.workspace) ?? [];
+      group.push(f);
+      groups.set(f.workspace, group);
     }
+
+    // Sort groups by subtotal desc
+    const sortedGroups = [...groups.entries()].sort(([, aFindings], [, bFindings]) => {
+      const aTotal = totalMonthlyUsd(aFindings);
+      const bTotal = totalMonthlyUsd(bFindings);
+      return bTotal - aTotal;
+    });
+
+    for (const [workspace, wsFindings] of sortedGroups) {
+      const subtotal = totalMonthlyUsd(wsFindings);
+      sections.push(`## Workspace: ${workspace} (${formatUsd(subtotal)})`);
+      sections.push(``);
+
+      const sorted = sortFindings(wsFindings);
+      for (const f of sorted) {
+        sections.push(renderFinding(f));
+        sections.push(``);
+      }
+    }
+  }
+
+  // Notices section for diagnostic findings
+  if (diagnostics.length > 0) {
+    sections.push(`## Notices`);
+    sections.push(``);
+    for (const f of diagnostics) {
+      sections.push(`- \`${f.rule}\` **${f.title}** — ${f.detail}`);
+    }
+    sections.push(``);
   }
 
   return sections.join("\n");
@@ -118,16 +144,19 @@ export function renderMarkdown(
 /**
  * Render findings as a JSON string with:
  * { generatedAt, totalMonthlyUsd, findings: sorted[] }
+ * All findings are included in the `findings` array (shape preserved),
+ * but `totalMonthlyUsd` is computed from cost findings only.
  */
 export function renderJson(
   findings: Finding[],
   meta: { generatedAt: string },
 ): string {
   const sorted = sortFindings(findings);
+  const costFindings = findings.filter(isCost);
   return JSON.stringify(
     {
       generatedAt: meta.generatedAt,
-      totalMonthlyUsd: totalMonthlyUsd(findings),
+      totalMonthlyUsd: totalMonthlyUsd(costFindings),
       findings: sorted,
     },
     null,

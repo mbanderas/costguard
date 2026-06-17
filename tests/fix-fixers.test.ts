@@ -17,6 +17,10 @@ const cleanContent = readFileSync(
   join(fixturesDir, "workflow-fix-clean.yml"),
   "utf8",
 );
+const deployContent = readFileSync(
+  join(fixturesDir, "workflow-deploy-job.yml"),
+  "utf8",
+);
 
 describe("pathsIgnoreFixer", () => {
   it("base: changed:true and patched contains paths-ignore entries", () => {
@@ -103,5 +107,77 @@ describe("timeoutFixer", () => {
     const second = timeoutFixer("workflow.yml", first.patched);
     expect(second.changed).toBe(false);
     expect(second.patched).toBe(second.original);
+  });
+
+  it("deploy job (helm step): timeout-minutes set to 60", () => {
+    const result = timeoutFixer("workflow.yml", deployContent);
+    expect(result.changed).toBe(true);
+    expect(result.patched).toContain("timeout-minutes: 60");
+  });
+
+  it("base (pnpm-only steps): timeout-minutes still 15", () => {
+    const result = timeoutFixer("workflow.yml", baseContent);
+    expect(result.changed).toBe(true);
+    expect(result.patched).toContain("timeout-minutes: 15");
+    expect(result.patched).not.toContain("timeout-minutes: 60");
+  });
+});
+
+describe("concurrencyFixer (cancel-in-progress:false no-op)", () => {
+  it("workflow with cancel-in-progress:false -> changed:false (do not overwrite)", () => {
+    const content = [
+      "name: Deploy",
+      "on:",
+      "  push:",
+      "    branches: [main]",
+      "concurrency:",
+      "  group: deploy",
+      "  cancel-in-progress: false",
+      "jobs:",
+      "  release:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - run: echo hi",
+    ].join("\n");
+    const result = concurrencyFixer("workflow.yml", content);
+    expect(result.changed).toBe(false);
+  });
+});
+
+describe("pathsIgnoreFixer (skip guards)", () => {
+  it("push trigger with paths allow-list -> changed:false", () => {
+    const content = [
+      "name: CI",
+      "on:",
+      "  push:",
+      "    paths:",
+      "      - 'src/**'",
+      "jobs:",
+      "  build:",
+      "    runs-on: ubuntu-latest",
+      "    timeout-minutes: 5",
+      "    steps:",
+      "      - run: echo hi",
+    ].join("\n");
+    const result = pathsIgnoreFixer("workflow.yml", content);
+    expect(result.changed).toBe(false);
+  });
+
+  it("tag-only push (no branches key) -> changed:false", () => {
+    const content = [
+      "name: Release",
+      "on:",
+      "  push:",
+      "    tags:",
+      "      - 'v*'",
+      "jobs:",
+      "  release:",
+      "    runs-on: ubuntu-latest",
+      "    timeout-minutes: 5",
+      "    steps:",
+      "      - run: echo hi",
+    ].join("\n");
+    const result = pathsIgnoreFixer("workflow.yml", content);
+    expect(result.changed).toBe(false);
   });
 });

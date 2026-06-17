@@ -8,11 +8,14 @@ import yaml from "js-yaml";
 
 export interface PushTrigger {
   branches?: string[];
+  tags?: string[];
+  paths?: string[];
   "paths-ignore"?: string[];
 }
 
 export interface PullRequestTrigger {
   branches?: string[];
+  paths?: string[];
   "paths-ignore"?: string[];
 }
 
@@ -78,6 +81,10 @@ function parsePushTrigger(raw: unknown): PushTrigger | undefined {
   const result: PushTrigger = {};
   const branches = toStringArray(raw["branches"]);
   if (branches !== undefined) result.branches = branches;
+  const tags = toStringArray(raw["tags"]);
+  if (tags !== undefined) result.tags = tags;
+  const paths = toStringArray(raw["paths"]);
+  if (paths !== undefined) result.paths = paths;
   const pathsIgnore = toStringArray(raw["paths-ignore"]);
   if (pathsIgnore !== undefined) result["paths-ignore"] = pathsIgnore;
   return result;
@@ -89,6 +96,8 @@ function parsePullRequestTrigger(raw: unknown): PullRequestTrigger | undefined {
   const result: PullRequestTrigger = {};
   const branches = toStringArray(raw["branches"]);
   if (branches !== undefined) result.branches = branches;
+  const paths = toStringArray(raw["paths"]);
+  if (paths !== undefined) result.paths = paths;
   const pathsIgnore = toStringArray(raw["paths-ignore"]);
   if (pathsIgnore !== undefined) result["paths-ignore"] = pathsIgnore;
   return result;

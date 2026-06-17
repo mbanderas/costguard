@@ -1,17 +1,14 @@
-import { parseDocument, isMap, isScalar } from "yaml";
+import { parseDocument, isMap } from "yaml";
 import type { Fixer } from "../types.js";
 
-function hasValidConcurrency(doc: ReturnType<typeof parseDocument>): boolean {
-  const concNode = doc.get("concurrency", true);
-  if (!isMap(concNode)) return false;
-  const cancelNode = concNode.get("cancel-in-progress", true);
-  return isScalar(cancelNode) && cancelNode.value === true;
+function hasAnyConcurrency(doc: ReturnType<typeof parseDocument>): boolean {
+  return isMap(doc.get("concurrency", true));
 }
 
 export const concurrencyFixer: Fixer = (filePath, content) => {
   const doc = parseDocument(content);
 
-  if (hasValidConcurrency(doc)) {
+  if (hasAnyConcurrency(doc)) {
     return { filePath, original: content, patched: content, changed: false };
   }
 

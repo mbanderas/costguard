@@ -1,5 +1,27 @@
-import { parseDocument, isMap } from "yaml";
+import { parseDocument, isMap, isSeq, isScalar } from "yaml";
 import type { Fixer } from "../types.js";
+
+const DEPLOY_SIGNAL_RE =
+  /\b(helm|rollout|terraform apply|docker build|deploy)\b/i;
+
+function collectRunStrings(jobValue: ReturnType<typeof parseDocument.prototype.get>): string[] {
+  if (!isMap(jobValue)) return [];
+  const stepsNode = jobValue.get("steps", true);
+  if (!isSeq(stepsNode)) return [];
+  const runs: string[] = [];
+  for (const step of stepsNode.items) {
+    if (!isMap(step)) continue;
+    const runNode = step.get("run", true);
+    if (isScalar(runNode) && typeof runNode.value === "string") {
+      runs.push(runNode.value);
+    }
+  }
+  return runs;
+}
+
+function chooseTimeout(runStrings: string[]): number {
+  return runStrings.some((s) => DEPLOY_SIGNAL_RE.test(s)) ? 60 : 15;
+}
 
 export const timeoutFixer: Fixer = (filePath, content) => {
   const doc = parseDocument(content);
@@ -17,7 +39,8 @@ export const timeoutFixer: Fixer = (filePath, content) => {
     const existing = jobValue.get("timeout-minutes", true);
     if (existing !== undefined && existing !== null) continue;
 
-    jobValue.set("timeout-minutes", 15);
+    const minutes = chooseTimeout(collectRunStrings(jobValue));
+    jobValue.set("timeout-minutes", minutes);
     changed = true;
   }
 

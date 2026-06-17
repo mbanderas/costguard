@@ -6,6 +6,14 @@ import { sortFindings } from "../reporter/index.js";
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Returns true when a finding participates in cost totals and counts.
+ * Mirrors reporter/index.ts isCost — kept local to avoid coupling.
+ */
+function isCost(f: Finding): boolean {
+  return f.kind === undefined || f.kind === "cost";
+}
+
 function fmtUsd(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
@@ -33,10 +41,12 @@ export function renderDigestMarkdown(
   findings: Finding[],
   meta: { generatedAt: string; period: string },
 ): string {
-  const total = totalMonthlyUsd(findings);
-  const highCount = findings.filter((f) => f.severity === "high").length;
-  const providerRows = buildProviderRows(findings);
-  const topFindings = sortFindings(findings).slice(0, 5);
+  const costFindings = findings.filter(isCost);
+
+  const total = totalMonthlyUsd(costFindings);
+  const highCount = costFindings.filter((f) => f.severity === "high").length;
+  const providerRows = buildProviderRows(costFindings);
+  const topFindings = sortFindings(costFindings).slice(0, 5);
 
   const lines: string[] = [];
 
@@ -47,7 +57,7 @@ export function renderDigestMarkdown(
 
   // Summary
   lines.push(
-    `**Total: ${fmtUsd(total)}/mo across ${findings.length} finding(s) — ${highCount} high.**`,
+    `**Total: ${fmtUsd(total)}/mo across ${costFindings.length} finding(s) — ${highCount} high.**`,
   );
   lines.push(``);
 
@@ -83,10 +93,12 @@ export function renderDigestJson(
   findings: Finding[],
   meta: { generatedAt: string; period: string },
 ): string {
-  const total = totalMonthlyUsd(findings);
-  const highCount = findings.filter((f) => f.severity === "high").length;
-  const providerBreakdown = buildProviderRows(findings);
-  const topFindings = sortFindings(findings).slice(0, 5);
+  const costFindings = findings.filter(isCost);
+
+  const total = totalMonthlyUsd(costFindings);
+  const highCount = costFindings.filter((f) => f.severity === "high").length;
+  const providerBreakdown = buildProviderRows(costFindings);
+  const topFindings = sortFindings(costFindings).slice(0, 5);
 
   return JSON.stringify(
     {

@@ -1,7 +1,7 @@
 import parser from "cron-parser";
 import type { Finding } from "../../types.js";
 import type { CheckContext } from "../../types.js";
-import type { WorkflowModel } from "./parser.js";
+import type { WorkflowModel, PushTrigger } from "./parser.js";
 import {
   loadRunnerPricing,
   parseRunnerLabel,
@@ -83,11 +83,21 @@ export function checkDoubleTrigger(
 // push/pull_request trigger lacking paths-ignore covering docs
 // ------------------------------------------------------------------
 
-const REQUIRED_PATHS_IGNORE = ["**.md", "docs/**"];
-
 function hasSufficientPathsIgnore(patterns: string[] | undefined): boolean {
-  if (patterns === undefined || patterns.length === 0) return false;
-  return REQUIRED_PATHS_IGNORE.every((req) => patterns.includes(req));
+  return patterns !== undefined && patterns.length > 0;
+}
+
+// A push trigger that targets only tags (tags present, no branches) is not a
+// rapid branch trigger: path filters don't apply to it (Issue 4) and it can't
+// be spammed by pushes the way a branch push can (Issue 5). A bare `push` (no
+// branches and no tags) fires on all branches, so it is NOT tag-only.
+function isTagOnlyPush(push: PushTrigger | undefined): boolean {
+  return (
+    push !== undefined &&
+    push.tags !== undefined &&
+    push.tags.length > 0 &&
+    push.branches === undefined
+  );
 }
 
 export function checkNoPathsIgnore(
@@ -96,8 +106,12 @@ export function checkNoPathsIgnore(
 ): Finding[] {
   const findings: Finding[] = [];
 
+  const pushIsTagOnly = isTagOnlyPush(model.push);
+
   if (
     model.push !== undefined &&
+    !pushIsTagOnly &&
+    !(model.push.paths !== undefined && model.push.paths.length > 0) &&
     !hasSufficientPathsIgnore(model.push["paths-ignore"])
   ) {
     findings.push({
@@ -118,6 +132,7 @@ export function checkNoPathsIgnore(
 
   if (
     model.pull_request !== undefined &&
+    !(model.pull_request.paths !== undefined && model.pull_request.paths.length > 0) &&
     !hasSufficientPathsIgnore(model.pull_request["paths-ignore"])
   ) {
     findings.push({
@@ -148,7 +163,20 @@ export function checkNoConcurrency(
   ctx: CheckContext,
 ): Finding[] {
   const conc = model.concurrency;
-  if (conc !== undefined && conc["cancel-in-progress"] === true) return [];
+  // Bug 1: suppress whenever ANY concurrency block is present (cancel-in-progress:false
+  // is an intentional setting for publishers/deployers — not a waste signal).
+  if (conc !== undefined) return [];
+
+  // Issue 5: suppress for non-auto-triggered workflows. Dispatch-only / tag-only
+  // workflows can't be spammed by rapid pushes, so concurrency adds no value.
+  // A branch push (with branches, or bare = all branches) and pull_request and
+  // schedule are all rapidly re-triggerable. Only a tag-only push and manual
+  // dispatch are not, so concurrency adds no value there.
+  const isAutoTriggered =
+    model.pull_request !== undefined ||
+    (model.push !== undefined && !isTagOnlyPush(model.push)) ||
+    (model.schedule !== undefined && model.schedule.length > 0);
+  if (!isAutoTriggered) return [];
 
   return [
     {

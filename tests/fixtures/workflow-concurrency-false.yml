@@ -1,0 +1,19 @@
+name: CI Concurrency False
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm publish

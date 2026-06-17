@@ -17,6 +17,12 @@ export interface Finding {
   detail: string; // what was found + where (file:line or resource id)
   fix: string; // the exact change to make
   autofixable: boolean;
+  /**
+   * Omitted or `"cost"` — participates in totals, counts, and high-count.
+   * `"diagnostic"` — environment/tool availability notice; excluded from
+   * totals, counts, and high-count, and rendered in a separate Notices section.
+   */
+  kind?: "cost" | "diagnostic";
 }
 
 export interface CheckContext {

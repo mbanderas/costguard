@@ -339,6 +339,136 @@ describe("parser — array runs-on", () => {
 });
 
 // ------------------------------------------------------------------
+// (c4) Bug 1 — checkNoConcurrency suppresses on cancel-in-progress:false
+// ------------------------------------------------------------------
+
+describe("checkNoConcurrency — concurrency-false fixture", () => {
+  it("returns [] when concurrency block is present (even cancel-in-progress:false)", () => {
+    const model = parseWorkflow(path.join(FIXTURES, "workflow-concurrency-false.yml"));
+    const findings = checkNoConcurrency(model, defaultCtx);
+    expect(findings).toHaveLength(0);
+  });
+});
+
+// ------------------------------------------------------------------
+// (c5) Issue 5 — checkNoConcurrency suppresses on non-auto-triggered workflows
+// ------------------------------------------------------------------
+
+describe("checkNoConcurrency — dispatch-only fixture", () => {
+  it("returns [] for a workflow_dispatch-only workflow (no auto-trigger)", () => {
+    const model = parseWorkflow(path.join(FIXTURES, "workflow-dispatch-only.yml"));
+    const findings = checkNoConcurrency(model, defaultCtx);
+    expect(findings).toHaveLength(0);
+  });
+});
+
+// Issue 5 edge: a bare/all-branches push (no `branches:` key) IS rapidly
+// re-triggerable, so it must still fire — auto-trigger keys on "not tag-only",
+// not on the presence of a branches list.
+describe("checkNoConcurrency — bare/all-branches push fires", () => {
+  it("fires for `on: [push]` (push present, no branches list)", () => {
+    const model: import("../src/checks/ci/parser.js").WorkflowModel = {
+      filePath: "fake.yml",
+      workflow_call: false,
+      workflow_dispatch: false,
+      push: {}, // bare push = all branches
+      jobs: {},
+    };
+    const findings = checkNoConcurrency(model, defaultCtx);
+    expect(findings.some((f) => f.rule === "ci/no-concurrency")).toBe(true);
+  });
+
+  it("fires for a push filtered by paths only (branch push, no branches list)", () => {
+    const model: import("../src/checks/ci/parser.js").WorkflowModel = {
+      filePath: "fake.yml",
+      workflow_call: false,
+      workflow_dispatch: false,
+      push: { paths: ["src/**"] },
+      jobs: {},
+    };
+    const findings = checkNoConcurrency(model, defaultCtx);
+    expect(findings.some((f) => f.rule === "ci/no-concurrency")).toBe(true);
+  });
+
+  it("suppresses for a tag-only push with no other auto-trigger", () => {
+    const model: import("../src/checks/ci/parser.js").WorkflowModel = {
+      filePath: "fake.yml",
+      workflow_call: false,
+      workflow_dispatch: true,
+      push: { tags: ["v*"] },
+      jobs: {},
+    };
+    const findings = checkNoConcurrency(model, defaultCtx);
+    expect(findings).toHaveLength(0);
+  });
+});
+
+// ------------------------------------------------------------------
+// (c6) Issue 3 — checkNoPathsIgnore suppresses when paths: present
+// ------------------------------------------------------------------
+
+describe("checkNoPathsIgnore — paths-present fixture", () => {
+  it("returns [] for a push trigger with paths: allow-list (no paths-ignore needed)", () => {
+    const model = parseWorkflow(path.join(FIXTURES, "workflow-paths-present.yml"));
+    const findings = checkNoPathsIgnore(model, defaultCtx);
+    expect(findings).toHaveLength(0);
+  });
+});
+
+// ------------------------------------------------------------------
+// (c7) Issue 4 — checkNoPathsIgnore suppresses push finding for tag-only push
+// ------------------------------------------------------------------
+
+describe("checkNoPathsIgnore — tag-only-push fixture", () => {
+  it("has no push finding for a tag-only push trigger", () => {
+    const model = parseWorkflow(path.join(FIXTURES, "workflow-tag-only-push.yml"));
+    const findings = checkNoPathsIgnore(model, defaultCtx);
+    const pushFindings = findings.filter((f) => f.title.includes("Push trigger"));
+    expect(pushFindings).toHaveLength(0);
+  });
+});
+
+// ------------------------------------------------------------------
+// (c8) Bug 2 — hasSufficientPathsIgnore accepts non-literal patterns
+// ------------------------------------------------------------------
+
+describe("checkNoPathsIgnore — non-literal paths-ignore pattern", () => {
+  it("returns no push finding when paths-ignore contains a non-exact-literal pattern like **/*.md", () => {
+    const model: import("../src/checks/ci/parser.js").WorkflowModel = {
+      filePath: "fake.yml",
+      workflow_call: false,
+      workflow_dispatch: false,
+      push: {
+        branches: ["main"],
+        "paths-ignore": ["**/*.md"],
+      },
+      jobs: {},
+    };
+    const findings = checkNoPathsIgnore(model, defaultCtx);
+    const pushFindings = findings.filter((f) => f.title.includes("Push trigger"));
+    expect(pushFindings).toHaveLength(0);
+  });
+});
+
+// ------------------------------------------------------------------
+// (c9) REGRESSION — wasteful fixture still fires as expected
+// ------------------------------------------------------------------
+
+describe("regression — wasteful fixture still fires ci/no-concurrency and ci/no-paths-ignore", () => {
+  it("triggers ci/no-concurrency (push+pull_request, no concurrency block)", () => {
+    const model = parseWorkflow(path.join(FIXTURES, "workflow-wasteful.yml"));
+    const findings = checkNoConcurrency(model, defaultCtx);
+    expect(findings.some((f) => f.rule === "ci/no-concurrency")).toBe(true);
+  });
+
+  it("triggers ci/no-paths-ignore for push (no paths-ignore, no paths, not tag-only)", () => {
+    const model = parseWorkflow(path.join(FIXTURES, "workflow-wasteful.yml"));
+    const findings = checkNoPathsIgnore(model, defaultCtx);
+    expect(findings.some((f) => f.title.includes("Push trigger"))).toBe(true);
+  });
+});
+
+// ------------------------------------------------------------------
 // (d) actionlint-unavailable path
 // ------------------------------------------------------------------
 

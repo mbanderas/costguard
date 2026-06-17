@@ -68,6 +68,7 @@ export async function runActionlint(
             "Install: https://github.com/rhysd/actionlint",
           fix: "Install actionlint and ensure it is on PATH.",
           autofixable: false,
+          kind: "diagnostic" as const,
         },
       ];
     }
@@ -86,6 +87,7 @@ export async function runActionlint(
         detail: `actionlint --version failed: ${msg}`,
         fix: "Install actionlint and ensure it is on PATH.",
         autofixable: false,
+        kind: "diagnostic" as const,
       },
     ];
   }
@@ -134,6 +136,7 @@ export async function runActionlint(
         detail: `actionlint failed: ${msg.slice(0, 200)}`,
         fix: "Check that actionlint is properly installed and the workflow files are accessible.",
         autofixable: false,
+        kind: "diagnostic" as const,
       },
     ];
   }

@@ -1,0 +1,15 @@
+name: CI Paths Present
+
+on:
+  push:
+    paths:
+      - 'src/**'
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm build
