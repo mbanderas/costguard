@@ -119,6 +119,65 @@ failed. Supported: `github`, `supabase`, `railway`, `netlify`, `neon`, `vercel`,
 `sentry`, `upstash`, `atlas`, `cloudflare`, `fly`, `render`, `datadog` (+ inngest
 detection).
 
+## 7. MCP tools (for AI coding agents)
+
+Costguard also ships a bundled **MCP server** that exposes the same engine over a
+host-agnostic tool surface (Claude Code, Codex, any MCP host). It wraps the same
+read-only engine functions — no new behavior, same posture. In Claude Code it is
+declared by `.claude-plugin/.mcp.json` and launched from the bundled build:
+
+```json
+{ "mcpServers": { "costguard": { "command": "node",
+  "args": ["${CLAUDE_PLUGIN_ROOT}/dist/mcp/server.js"] } } }
+```
+
+No `npx` and no published package — it runs from the committed `dist/mcp/server.js`.
+For **Codex**, add the equivalent to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.costguard]
+command = "node"
+args = ["<plugin-root>/dist/mcp/server.js"]
+```
+
+Tools:
+
+| Tool | Posture |
+|---|---|
+| `audit_workspace` | read-only; returns a Findings envelope (`includeSite` adds site checks) |
+| `discover_providers` | read-only; env-var NAMES only, never values |
+| `audit_site` | read-only, GET-only |
+| `plan_fix` | dry-run; returns unified diffs only, writes nothing |
+| `apply_fix` | writes local CI files; REFUSES unless `confirmApply:true`; never pushes git |
+| `plan_live_checks` | plans a live billing read (see below); emits a snippet only with consent |
+| `ingest_live_reading` | parses a returned billing figure into a Finding |
+
+## 8. Live billing checks (`--live`) — opt-in, consent-gated
+
+`--live` **extends** the read-only posture above: it adds **browser-driven reads
+over your already-logged-in session**, performed by the **playwriter** MCP server
+under the agent's orchestration. This is a genuine posture change and is treated
+as one — **off by default, opt-in, and consent-gated.** costguard's own tools
+still never drive a browser and never see credentials: `plan_live_checks` only
+emits a **read-only** snippet (navigation + reading rendered billing figures — no
+clicks, typing, form submits, credential replay, cookies, localStorage,
+sessionStorage, or screenshots), and `ingest_live_reading` only parses the
+returned figure. The browser action is performed by playwriter, authorized by you.
+
+**API-first / browser-fallback:** `plan_live_checks` is API-first when a provider
+module exists and its API token resolves from the environment (a deterministic
+env-NAME check, no network probe) — in that case prefer `audit_workspace`. Only
+when there is no usable API token does it fall back to a browser playbook.
+
+**Three consent gates (all required):** (1) the host's MCP tool-call consent;
+(2) costguard's own per-run confirmation — `plan_live_checks` returns a
+`consentNotice` the agent MUST surface, and emits the actionable snippet only when
+called with `confirmLive:true`; (3) playwriter's own consent before it executes.
+
+**Graceful degrade:** if playwriter is not connected, the agent cannot run the
+snippet; `ingest_live_reading` returns a `kind:"diagnostic"` Finding (excluded
+from cost totals) and the audit never blocks.
+
 ## Notes
 
 - All provider calls are read-only (GET / read-only GraphQL). No POST/PUT/PATCH/

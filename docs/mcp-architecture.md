@@ -314,3 +314,22 @@ channel (`kind:"diagnostic"`), so the contract is already proven.
   (start with providers lacking a usable billing API; do not speculate).
 - `npx costguard-mcp` publish path is explicitly OUT of scope until the user
   authorizes an npm publish.
+
+## 8. Implementation status & notes
+
+Implemented across phases P0–P6 (see `docs/mcp-implementation-plan.md`). The
+bundled server lives at `dist/mcp/server.js` and is declared for Claude Code in
+`.claude-plugin/.mcp.json`; Codex uses the `[mcp_servers.costguard]` form
+documented in `skills/costguard/SKILL.md`. Notable deviations from this design,
+all surfaced rather than silent:
+
+- **Consent shape (§5.3 gate 2).** `plan_live_checks` does not throw on missing
+  consent; it returns the `consentNotice` + the API-first decision but WITHOLDS
+  the `readOnlySnippet` until called with `confirmLive:true`. This preserves the
+  surfacing flow (the agent must show the notice before browsing) while still
+  ensuring "consent refused → no snippet".
+- **Read-only oracle (§5.2).** The forbidden-token list uses the singular
+  `"cookie"` instead of `"cookies"` so it also catches `document.cookie`. This
+  strengthens the invariant (a superset match); it never weakens it.
+- **First-cut playbooks.** P5 ships `vercel` and `render` only (real, stable
+  dashboard billing URLs); no speculative providers.
