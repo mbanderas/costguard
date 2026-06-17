@@ -9,6 +9,7 @@ import { registerReport } from "./commands/report.js";
 import { registerProviders } from "./commands/providersCmd.js";
 import { registerFix } from "./commands/fixCmd.js";
 import { registerDigest } from "./commands/digestCmd.js";
+import { registerInstall } from "./commands/installCmd.js";
 
 const program = new Command();
 
@@ -28,6 +29,7 @@ registerReport(program);
 registerProviders(program);
 registerFix(program);
 registerDigest(program);
+registerInstall(program);
 
 try {
   await program.parseAsync(process.argv);

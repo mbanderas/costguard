@@ -982,8 +982,8 @@ var require_command = __commonJS({
   "node_modules/.pnpm/commander@12.1.0/node_modules/commander/lib/command.js"(exports) {
     var EventEmitter = __require("node:events").EventEmitter;
     var childProcess = __require("node:child_process");
-    var path15 = __require("node:path");
-    var fs25 = __require("node:fs");
+    var path16 = __require("node:path");
+    var fs26 = __require("node:fs");
     var process2 = __require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1915,11 +1915,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path15.resolve(baseDir, baseName);
-          if (fs25.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path15.extname(baseName))) return void 0;
+          const localBin = path16.resolve(baseDir, baseName);
+          if (fs26.existsSync(localBin)) return localBin;
+          if (sourceExt.includes(path16.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs25.existsSync(`${localBin}${ext}`)
+            (ext) => fs26.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1931,21 +1931,21 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs25.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs26.realpathSync(this._scriptPath);
           } catch (err) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path15.resolve(
-            path15.dirname(resolvedScriptPath),
+          executableDir = path16.resolve(
+            path16.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path15.basename(
+            const legacyName = path16.basename(
               this._scriptPath,
-              path15.extname(this._scriptPath)
+              path16.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1956,7 +1956,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path15.extname(executableFile));
+        launchWithNode = sourceExt.includes(path16.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2796,7 +2796,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path15.basename(filename, path15.extname(filename));
+        this._name = path16.basename(filename, path16.extname(filename));
         return this;
       }
       /**
@@ -2810,9 +2810,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path16) {
-        if (path16 === void 0) return this._executableDir;
-        this._executableDir = path16;
+      executableDir(path17) {
+        if (path17 === void 0) return this._executableDir;
+        this._executableDir = path17;
         return this;
       }
       /**
@@ -3454,8 +3454,8 @@ var init_parseUtil = __esm({
     init_errors();
     init_en();
     makeIssue = (params) => {
-      const { data, path: path15, errorMaps, issueData } = params;
-      const fullPath = [...path15, ...issueData.path || []];
+      const { data, path: path16, errorMaps, issueData } = params;
+      const fullPath = [...path16, ...issueData.path || []];
       const fullIssue = {
         ...issueData,
         path: fullPath
@@ -3763,11 +3763,11 @@ var init_types = __esm({
     init_parseUtil();
     init_util();
     ParseInputLazyPath = class {
-      constructor(parent, value, path15, key) {
+      constructor(parent, value, path16, key) {
         this._cachedPath = [];
         this.parent = parent;
         this.data = value;
-        this._path = path15;
+        this._path = path16;
         this._key = key;
       }
       get path() {
@@ -22450,17 +22450,17 @@ var require_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    function visit_(key, node, visitor, path15) {
-      const ctrl = callVisitor(key, node, visitor, path15);
+    function visit_(key, node, visitor, path16) {
+      const ctrl = callVisitor(key, node, visitor, path16);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path15, ctrl);
-        return visit_(key, ctrl, visitor, path15);
+        replaceNode(key, path16, ctrl);
+        return visit_(key, ctrl, visitor, path16);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path15 = Object.freeze(path15.concat(node));
+          path16 = Object.freeze(path16.concat(node));
           for (let i = 0; i < node.items.length; ++i) {
-            const ci = visit_(i, node.items[i], visitor, path15);
+            const ci = visit_(i, node.items[i], visitor, path16);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -22471,13 +22471,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path15 = Object.freeze(path15.concat(node));
-          const ck = visit_("key", node.key, visitor, path15);
+          path16 = Object.freeze(path16.concat(node));
+          const ck = visit_("key", node.key, visitor, path16);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = visit_("value", node.value, visitor, path15);
+          const cv = visit_("value", node.value, visitor, path16);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -22498,17 +22498,17 @@ var require_visit = __commonJS({
     visitAsync.BREAK = BREAK;
     visitAsync.SKIP = SKIP;
     visitAsync.REMOVE = REMOVE;
-    async function visitAsync_(key, node, visitor, path15) {
-      const ctrl = await callVisitor(key, node, visitor, path15);
+    async function visitAsync_(key, node, visitor, path16) {
+      const ctrl = await callVisitor(key, node, visitor, path16);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path15, ctrl);
-        return visitAsync_(key, ctrl, visitor, path15);
+        replaceNode(key, path16, ctrl);
+        return visitAsync_(key, ctrl, visitor, path16);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path15 = Object.freeze(path15.concat(node));
+          path16 = Object.freeze(path16.concat(node));
           for (let i = 0; i < node.items.length; ++i) {
-            const ci = await visitAsync_(i, node.items[i], visitor, path15);
+            const ci = await visitAsync_(i, node.items[i], visitor, path16);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -22519,13 +22519,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path15 = Object.freeze(path15.concat(node));
-          const ck = await visitAsync_("key", node.key, visitor, path15);
+          path16 = Object.freeze(path16.concat(node));
+          const ck = await visitAsync_("key", node.key, visitor, path16);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = await visitAsync_("value", node.value, visitor, path15);
+          const cv = await visitAsync_("value", node.value, visitor, path16);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -22552,23 +22552,23 @@ var require_visit = __commonJS({
       }
       return visitor;
     }
-    function callVisitor(key, node, visitor, path15) {
+    function callVisitor(key, node, visitor, path16) {
       if (typeof visitor === "function")
-        return visitor(key, node, path15);
+        return visitor(key, node, path16);
       if (identity.isMap(node))
-        return visitor.Map?.(key, node, path15);
+        return visitor.Map?.(key, node, path16);
       if (identity.isSeq(node))
-        return visitor.Seq?.(key, node, path15);
+        return visitor.Seq?.(key, node, path16);
       if (identity.isPair(node))
-        return visitor.Pair?.(key, node, path15);
+        return visitor.Pair?.(key, node, path16);
       if (identity.isScalar(node))
-        return visitor.Scalar?.(key, node, path15);
+        return visitor.Scalar?.(key, node, path16);
       if (identity.isAlias(node))
-        return visitor.Alias?.(key, node, path15);
+        return visitor.Alias?.(key, node, path16);
       return void 0;
     }
-    function replaceNode(key, path15, node) {
-      const parent = path15[path15.length - 1];
+    function replaceNode(key, path16, node) {
+      const parent = path16[path16.length - 1];
       if (identity.isCollection(parent)) {
         parent.items[key] = node;
       } else if (identity.isPair(parent)) {
@@ -23178,10 +23178,10 @@ var require_Collection = __commonJS({
     var createNode = require_createNode();
     var identity = require_identity();
     var Node = require_Node();
-    function collectionFromPath(schema, path15, value) {
+    function collectionFromPath(schema, path16, value) {
       let v = value;
-      for (let i = path15.length - 1; i >= 0; --i) {
-        const k = path15[i];
+      for (let i = path16.length - 1; i >= 0; --i) {
+        const k = path16[i];
         if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
           const a = [];
           a[k] = v;
@@ -23200,7 +23200,7 @@ var require_Collection = __commonJS({
         sourceObjects: /* @__PURE__ */ new Map()
       });
     }
-    var isEmptyPath = (path15) => path15 == null || typeof path15 === "object" && !!path15[Symbol.iterator]().next().done;
+    var isEmptyPath = (path16) => path16 == null || typeof path16 === "object" && !!path16[Symbol.iterator]().next().done;
     var Collection = class extends Node.NodeBase {
       constructor(type, schema) {
         super(type);
@@ -23230,11 +23230,11 @@ var require_Collection = __commonJS({
        * be a Pair instance or a `{ key, value }` object, which may not have a key
        * that already exists in the map.
        */
-      addIn(path15, value) {
-        if (isEmptyPath(path15))
+      addIn(path16, value) {
+        if (isEmptyPath(path16))
           this.add(value);
         else {
-          const [key, ...rest] = path15;
+          const [key, ...rest] = path16;
           const node = this.get(key, true);
           if (identity.isCollection(node))
             node.addIn(rest, value);
@@ -23248,8 +23248,8 @@ var require_Collection = __commonJS({
        * Removes a value from the collection.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path15) {
-        const [key, ...rest] = path15;
+      deleteIn(path16) {
+        const [key, ...rest] = path16;
         if (rest.length === 0)
           return this.delete(key);
         const node = this.get(key, true);
@@ -23263,8 +23263,8 @@ var require_Collection = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path15, keepScalar) {
-        const [key, ...rest] = path15;
+      getIn(path16, keepScalar) {
+        const [key, ...rest] = path16;
         const node = this.get(key, true);
         if (rest.length === 0)
           return !keepScalar && identity.isScalar(node) ? node.value : node;
@@ -23282,8 +23282,8 @@ var require_Collection = __commonJS({
       /**
        * Checks if the collection includes a value with the key `key`.
        */
-      hasIn(path15) {
-        const [key, ...rest] = path15;
+      hasIn(path16) {
+        const [key, ...rest] = path16;
         if (rest.length === 0)
           return this.has(key);
         const node = this.get(key, true);
@@ -23293,8 +23293,8 @@ var require_Collection = __commonJS({
        * Sets a value in this collection. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path15, value) {
-        const [key, ...rest] = path15;
+      setIn(path16, value) {
+        const [key, ...rest] = path16;
         if (rest.length === 0) {
           this.set(key, value);
         } else {
@@ -25809,9 +25809,9 @@ var require_Document = __commonJS({
           this.contents.add(value);
       }
       /** Adds a value to the document. */
-      addIn(path15, value) {
+      addIn(path16, value) {
         if (assertCollection(this.contents))
-          this.contents.addIn(path15, value);
+          this.contents.addIn(path16, value);
       }
       /**
        * Create a new `Alias` node, ensuring that the target `node` has the required anchor.
@@ -25886,14 +25886,14 @@ var require_Document = __commonJS({
        * Removes a value from the document.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path15) {
-        if (Collection.isEmptyPath(path15)) {
+      deleteIn(path16) {
+        if (Collection.isEmptyPath(path16)) {
           if (this.contents == null)
             return false;
           this.contents = null;
           return true;
         }
-        return assertCollection(this.contents) ? this.contents.deleteIn(path15) : false;
+        return assertCollection(this.contents) ? this.contents.deleteIn(path16) : false;
       }
       /**
        * Returns item at `key`, or `undefined` if not found. By default unwraps
@@ -25908,10 +25908,10 @@ var require_Document = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path15, keepScalar) {
-        if (Collection.isEmptyPath(path15))
+      getIn(path16, keepScalar) {
+        if (Collection.isEmptyPath(path16))
           return !keepScalar && identity.isScalar(this.contents) ? this.contents.value : this.contents;
-        return identity.isCollection(this.contents) ? this.contents.getIn(path15, keepScalar) : void 0;
+        return identity.isCollection(this.contents) ? this.contents.getIn(path16, keepScalar) : void 0;
       }
       /**
        * Checks if the document includes a value with the key `key`.
@@ -25922,10 +25922,10 @@ var require_Document = __commonJS({
       /**
        * Checks if the document includes a value at `path`.
        */
-      hasIn(path15) {
-        if (Collection.isEmptyPath(path15))
+      hasIn(path16) {
+        if (Collection.isEmptyPath(path16))
           return this.contents !== void 0;
-        return identity.isCollection(this.contents) ? this.contents.hasIn(path15) : false;
+        return identity.isCollection(this.contents) ? this.contents.hasIn(path16) : false;
       }
       /**
        * Sets a value in this document. For `!!set`, `value` needs to be a
@@ -25942,13 +25942,13 @@ var require_Document = __commonJS({
        * Sets a value in this document. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path15, value) {
-        if (Collection.isEmptyPath(path15)) {
+      setIn(path16, value) {
+        if (Collection.isEmptyPath(path16)) {
           this.contents = value;
         } else if (this.contents == null) {
-          this.contents = Collection.collectionFromPath(this.schema, Array.from(path15), value);
+          this.contents = Collection.collectionFromPath(this.schema, Array.from(path16), value);
         } else if (assertCollection(this.contents)) {
-          this.contents.setIn(path15, value);
+          this.contents.setIn(path16, value);
         }
       }
       /**
@@ -27908,9 +27908,9 @@ var require_cst_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    visit.itemAtPath = (cst, path15) => {
+    visit.itemAtPath = (cst, path16) => {
       let item = cst;
-      for (const [field, index] of path15) {
+      for (const [field, index] of path16) {
         const tok = item?.[field];
         if (tok && "items" in tok) {
           item = tok.items[index];
@@ -27919,23 +27919,23 @@ var require_cst_visit = __commonJS({
       }
       return item;
     };
-    visit.parentCollection = (cst, path15) => {
-      const parent = visit.itemAtPath(cst, path15.slice(0, -1));
-      const field = path15[path15.length - 1][0];
+    visit.parentCollection = (cst, path16) => {
+      const parent = visit.itemAtPath(cst, path16.slice(0, -1));
+      const field = path16[path16.length - 1][0];
       const coll = parent?.[field];
       if (coll && "items" in coll)
         return coll;
       throw new Error("Parent collection not found");
     };
-    function _visit(path15, item, visitor) {
-      let ctrl = visitor(item, path15);
+    function _visit(path16, item, visitor) {
+      let ctrl = visitor(item, path16);
       if (typeof ctrl === "symbol")
         return ctrl;
       for (const field of ["key", "value"]) {
         const token = item[field];
         if (token && "items" in token) {
           for (let i = 0; i < token.items.length; ++i) {
-            const ci = _visit(Object.freeze(path15.concat([[field, i]])), token.items[i], visitor);
+            const ci = _visit(Object.freeze(path16.concat([[field, i]])), token.items[i], visitor);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -27946,10 +27946,10 @@ var require_cst_visit = __commonJS({
             }
           }
           if (typeof ctrl === "function" && field === "key")
-            ctrl = ctrl(item, path15);
+            ctrl = ctrl(item, path16);
         }
       }
-      return typeof ctrl === "function" ? ctrl(item, path15) : ctrl;
+      return typeof ctrl === "function" ? ctrl(item, path16) : ctrl;
     }
     exports.visit = visit;
   }
@@ -29251,14 +29251,14 @@ var require_parser2 = __commonJS({
             case "scalar":
             case "single-quoted-scalar":
             case "double-quoted-scalar": {
-              const fs25 = this.flowScalar(this.type);
+              const fs26 = this.flowScalar(this.type);
               if (atNextItem || it.value) {
-                map.items.push({ start, key: fs25, sep: [] });
+                map.items.push({ start, key: fs26, sep: [] });
                 this.onKeyLine = true;
               } else if (it.sep) {
-                this.stack.push(fs25);
+                this.stack.push(fs26);
               } else {
-                Object.assign(it, { key: fs25, sep: [] });
+                Object.assign(it, { key: fs26, sep: [] });
                 this.onKeyLine = true;
               }
               return;
@@ -29386,13 +29386,13 @@ var require_parser2 = __commonJS({
             case "scalar":
             case "single-quoted-scalar":
             case "double-quoted-scalar": {
-              const fs25 = this.flowScalar(this.type);
+              const fs26 = this.flowScalar(this.type);
               if (!it || it.value)
-                fc.items.push({ start: [], key: fs25, sep: [] });
+                fc.items.push({ start: [], key: fs26, sep: [] });
               else if (it.sep)
-                this.stack.push(fs25);
+                this.stack.push(fs26);
               else
-                Object.assign(it, { key: fs25, sep: [] });
+                Object.assign(it, { key: fs26, sep: [] });
               return;
             }
             case "flow-map-end":
@@ -29953,16 +29953,16 @@ var init_base = __esm({
           }
         }
       }
-      addToPath(path15, added, removed, oldPosInc, options) {
-        const last = path15.lastComponent;
+      addToPath(path16, added, removed, oldPosInc, options) {
+        const last = path16.lastComponent;
         if (last && !options.oneChangePerToken && last.added === added && last.removed === removed) {
           return {
-            oldPos: path15.oldPos + oldPosInc,
+            oldPos: path16.oldPos + oldPosInc,
             lastComponent: { count: last.count + 1, added, removed, previousComponent: last.previousComponent }
           };
         } else {
           return {
-            oldPos: path15.oldPos + oldPosInc,
+            oldPos: path16.oldPos + oldPosInc,
             lastComponent: { count: 1, added, removed, previousComponent: last }
           };
         }
@@ -30983,6 +30983,36 @@ function registerDigest(program3) {
   );
 }
 
+// src/cli/commands/installCmd.ts
+import { spawnSync } from "node:child_process";
+import fs25 from "node:fs";
+import path15 from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+function registerInstall(program3) {
+  program3.command("install").description("Install the per-host adapter into a project (delegates to the portable installer)").allowUnknownOption(true).allowExcessArguments(true).helpOption(false).action(() => {
+    const installCjsPath = path15.resolve(
+      path15.dirname(fileURLToPath2(import.meta.url)),
+      "..",
+      "..",
+      "scripts",
+      "install.cjs"
+    );
+    if (!fs25.existsSync(installCjsPath)) {
+      console.error(
+        "costguard install needs the npm package: npx -y -p @costguard/costguard-mcp costguard install --target <host|auto>"
+      );
+      process.exitCode = 1;
+      return;
+    }
+    const idx = process.argv.indexOf("install");
+    const rawArgs = idx >= 0 ? process.argv.slice(idx + 1) : [];
+    const r = spawnSync(process.execPath, [installCjsPath, ...rawArgs], {
+      stdio: "inherit"
+    });
+    process.exitCode = r.status ?? 1;
+  });
+}
+
 // src/cli/index.ts
 var program2 = new Command();
 program2.name("costguard").version("0.1.0").description(
@@ -30997,6 +31027,7 @@ registerReport(program2);
 registerProviders(program2);
 registerFix(program2);
 registerDigest(program2);
+registerInstall(program2);
 try {
   await program2.parseAsync(process.argv);
 } catch (err) {
