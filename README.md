@@ -20,6 +20,60 @@ Commands below invoke the built CLI as `node dist/cli/index.js <command>`. If yo
 
 ---
 
+## Use from your coding agent (plugins + portable installer)
+
+CostGuard ships as a native plugin for Claude Code and Codex, and a portable
+installer drops a thin adapter into any other agent CLI. Every path drives the
+**same built CLI**, so build it first from the checkout:
+
+```sh
+pnpm install
+pnpm build
+```
+
+> The plugins and adapters run `node "<costguard>/dist/cli/index.js"` (Claude
+> Code resolves `<costguard>` as `${CLAUDE_PLUGIN_ROOT}`). They read the
+> `workspaces.json` registry from the **current working directory** — run them
+> from a project that has one, or run `registry --init` first. Not published to
+> npm yet: install from this checkout.
+
+**Claude Code / Desktop** — native plugin (`/costguard-audit`, `/costguard-fix`, and the `costguard` skill):
+
+```sh
+/plugin marketplace add mbanderas/costguard
+/plugin install costguard@costguard
+```
+
+The two slash commands wrap `audit` and `fix`; the bundled `costguard` skill
+covers the full CLI (scan, providers, registry, report, digest).
+
+**Codex CLI / Desktop** — native Codex plugin (bundled `costguard` skill):
+
+```sh
+codex plugin marketplace add mbanderas/costguard
+codex plugin add costguard@costguard
+```
+
+**Other CLIs / Desktop apps** — portable installer (zero-dependency, no-clobber, idempotent):
+
+| Tool | Command |
+|------|---------|
+| Cursor | `node scripts/install.cjs --target cursor` |
+| Gemini CLI | `node scripts/install.cjs --target gemini` |
+| Cline | `node scripts/install.cjs --target cline` |
+| Windsurf | `node scripts/install.cjs --target windsurf` |
+| Codex (project files) | `node scripts/install.cjs --target codex` |
+| Not sure / auto-detect | `node scripts/install.cjs --target auto` |
+
+Each install lays down that tool's `/costguard` command, skill, or workflow in
+the target project (it never overwrites an existing file). Add `--user` for the
+host's global path where supported, `--dry-run` to preview, and `--help` for
+the full usage. Put `costguard` on your `PATH` (e.g. `npm link` from the
+checkout) so the adapters can call it as a bare command, or they fall back to
+`node "<costguard>/dist/cli/index.js"`.
+
+---
+
 ## Commands
 
 All commands operate on the `workspaces.json` registry in the project root. Workspace selection is by directory name; `--all` selects every registered workspace.

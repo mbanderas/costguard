@@ -1,0 +1,14 @@
+{
+  "name": "costguard",
+  "version": "0.1.0",
+  "displayName": "Costguard",
+  "description": "Find and quantify cloud and CI spend waste from your coding agent. Costguard runs read-only billing checks (GitHub Actions, Supabase, Railway, Netlify, Neon), static CI/cron waste rules, dry-run-first auto-fixes for workflow files, and a monthly cost digest — all driven from your session via /costguard-audit and /costguard-fix or the costguard skill. Never writes to provider accounts, never pushes git, never prints secrets.",
+  "author": {
+    "name": "Mark Banderas",
+    "url": "https://github.com/mbanderas"
+  },
+  "homepage": "https://github.com/mbanderas/costguard",
+  "repository": "https://github.com/mbanderas/costguard",
+  "license": "MIT",
+  "keywords": ["cost-optimization", "ci-minutes", "cron", "cloud-spend", "finops", "audit", "claude-code", "codex"]
+}

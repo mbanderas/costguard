@@ -1,0 +1,15 @@
+{
+  "name": "costguard",
+  "description": "Self-hosted marketplace for the Costguard cost-audit plugin.",
+  "owner": {
+    "name": "Mark Banderas",
+    "url": "https://github.com/mbanderas"
+  },
+  "plugins": [
+    {
+      "name": "costguard",
+      "source": "./",
+      "description": "Find and quantify cloud and CI spend waste from your coding agent. Read-only billing checks (GitHub Actions, Supabase, Railway, Netlify, Neon), static CI/cron waste rules, dry-run-first auto-fixes for workflow files, and a monthly cost digest — via /costguard-audit, /costguard-fix, or the costguard skill."
+    }
+  ]
+}

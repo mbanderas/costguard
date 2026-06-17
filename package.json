@@ -10,6 +10,17 @@
   "bin": {
     "costguard": "./dist/cli/index.js"
   },
+  "files": [
+    "dist/",
+    "knowledge/",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".agents/plugins/marketplace.json",
+    "commands/",
+    "skills/",
+    "integrations/",
+    "scripts/install.cjs"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

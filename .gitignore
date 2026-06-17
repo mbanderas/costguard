@@ -5,3 +5,4 @@ dist/
 .costguard/
 _*
 coverage/
+reports/
