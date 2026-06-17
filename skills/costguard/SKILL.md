@@ -14,23 +14,41 @@ Map the user's request to one Costguard CLI call and run it from the repo root.
 ## Command launcher
 
 Costguard reads a `workspaces.json` registry from the **current working
-directory**, so run it from a project that has one (or run
-`registry init` first).
+directory**, so run it from a project that has one (or run `registry init`
+first). Pick the launcher that matches your context; below, `costguard
+<subcommand>` means whichever you use.
 
-- If `costguard` is on `PATH`, use it directly: `costguard <subcommand> ...`.
-- Otherwise, when this skill is loaded from the Costguard plugin, run the
-  bundled build. Locate the plugin root (the dir containing
-  `dist/cli/index.js`; in Claude Code it is `${CLAUDE_PLUGIN_ROOT}`, in Codex
-  walk up from this `SKILL.md` to the dir holding `.codex-plugin/plugin.json`)
-  and run:
+### If installed via plugin
+
+When this skill is loaded from the Costguard plugin, run the bundled build — it
+ships a prebuilt `dist/cli/index.js`, so no build step is needed. Locate the
+plugin root (the dir containing `dist/cli/index.js`):
+
+- **Claude Code** — it is `${CLAUDE_PLUGIN_ROOT}`:
+
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/dist/cli/index.js" <subcommand> ...
+  ```
+
+- **Codex** — walk up from this `SKILL.md` to the dir holding
+  `.codex-plugin/plugin.json`:
 
   ```bash
   node "<plugin-root>/dist/cli/index.js" <subcommand> ...
   ```
 
-Below, `costguard <subcommand>` means either form. The plugin ships a prebuilt
-`dist/cli/index.js`, so no build step is needed to run it; only run `pnpm build`
-if you are developing from source.
+### If using npx (no plugin)
+
+No checkout and no build — run the published CLI directly:
+
+```bash
+npx -y -p @costguard/costguard-mcp costguard <subcommand> ...
+```
+
+Or, if `costguard` is on `PATH` (`npm i -g @costguard/costguard-mcp`), use it
+directly: `costguard <subcommand> ...`. Heads-up: `npx -y @costguard/costguard-mcp`
+(no `-p`, no subcommand) starts the MCP **server**, whereas `npx -y -p
+@costguard/costguard-mcp costguard <subcommand>` runs the **CLI**.
 
 ## 1. Audit for waste (the main action)
 
@@ -131,10 +149,24 @@ declared by `.claude-plugin/.mcp.json` and launched from the bundled build:
   "args": ["${CLAUDE_PLUGIN_ROOT}/dist/mcp/server.js"] } } }
 ```
 
-No `npx` and no published package — it runs from the committed `dist/mcp/server.js`.
-For **Codex**, add the equivalent to `~/.codex/config.toml`:
+In the plugin, the server runs from the committed `dist/mcp/server.js` — no
+install step.
+
+### Codex MCP config
+
+For **Codex**, add one of these to `~/.codex/config.toml`. Use npx for a
+no-checkout install (pulls the published package), or the bundled build if you
+run Codex from the plugin:
 
 ```toml
+# npx — no checkout
+[mcp_servers.costguard]
+command = "npx"
+args = ["-y", "@costguard/costguard-mcp"]
+```
+
+```toml
+# bundled plugin build
 [mcp_servers.costguard]
 command = "node"
 args = ["<plugin-root>/dist/mcp/server.js"]
