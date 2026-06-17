@@ -53,6 +53,7 @@
     "build": "node scripts/bundle.mjs && node scripts/bundle-mcp.mjs",
     "build:mcp": "node scripts/bundle-mcp.mjs",
     "check:dist": "node scripts/check-dist.cjs",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:dist",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

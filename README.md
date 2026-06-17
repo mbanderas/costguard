@@ -571,6 +571,22 @@ pnpm build      # emits dist/cli/index.js and dist/mcp/server.js
 pnpm test
 ```
 
+### Local checks (run CI without GitHub minutes)
+
+GitHub Actions is metered on private repos, so CI is gated to run only when the
+repo is public or via manual dispatch. Run the exact same checks locally instead:
+
+```sh
+pnpm verify     # typecheck + lint + test + check:dist (mirrors .github/workflows/ci.yml)
+```
+
+Enable the pre-push hook to run `pnpm verify` automatically before every push:
+
+```sh
+git config core.hooksPath .githooks   # once per clone
+git push --no-verify                  # bypass for a single push (e.g. docs-only)
+```
+
 ---
 
 ## Links

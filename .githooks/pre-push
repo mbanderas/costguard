@@ -1,0 +1,10 @@
+#!/bin/sh
+# Local CI gate. Runs the same checks as .github/workflows/ci.yml so broken
+# code is caught here instead of burning GitHub Actions minutes.
+# Enable once per clone:  git config core.hooksPath .githooks
+# Bypass for a single push (e.g. docs-only):  git push --no-verify
+echo "pre-push: running local verify (typecheck, lint, test, check:dist)..."
+pnpm verify || {
+  echo "pre-push: verify FAILED — push aborted. Fix, or bypass with: git push --no-verify" >&2
+  exit 1
+}

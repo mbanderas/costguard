@@ -3,6 +3,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [master]
   pull_request:
@@ -10,6 +11,10 @@ on:
 
 jobs:
   checks:
+    # Actions minutes are metered on private repos. Skip auto-runs while the
+    # repo is private (run `pnpm verify` locally instead — see README); the job
+    # runs automatically once the repo is public (free) or on manual dispatch.
+    if: github.event_name == 'workflow_dispatch' || github.event.repository.visibility == 'public'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
