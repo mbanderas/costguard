@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@costguard/costguard-mcp"><img src="https://img.shields.io/npm/v/@costguard/costguard-mcp?label=npm&color=2E9E6B" alt="npm version"></a>
   <a href="https://github.com/mbanderas/costguard/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/mbanderas/costguard/ci.yml?branch=master&label=CI" alt="CI status"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/mbanderas/costguard?color=2E9E6B" alt="MIT license"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2E9E6B" alt="MIT license"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/@costguard/costguard-mcp" alt="node version"></a>
 </p>
 
