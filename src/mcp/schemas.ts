@@ -120,6 +120,9 @@ export type ApplyFixInput = z.infer<typeof applyFixInputSchema>;
 export const planLiveChecksInputSchema = z.object({
   provider: z.string(),
   workspaceDir: z.string().optional(),
+  // Explicit per-run consent (gate 2). Without it the tool returns the consent
+  // notice and the API-first decision but withholds the actionable browser snippet.
+  confirmLive: z.boolean().optional(),
 });
 export type PlanLiveChecksInput = z.infer<typeof planLiveChecksInputSchema>;
 

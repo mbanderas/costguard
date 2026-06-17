@@ -6,12 +6,16 @@ import {
   auditSiteInputSchema,
   planFixInputSchema,
   applyFixInputSchema,
+  planLiveChecksInputSchema,
+  ingestLiveReadingInputSchema,
 } from "../schemas.js";
 import { auditWorkspaceHandler } from "./auditWorkspace.js";
 import { discoverProvidersHandler } from "./discoverProviders.js";
 import { auditSiteHandler } from "./auditSite.js";
 import { planFixHandler } from "./planFix.js";
 import { applyFixHandler } from "./applyFix.js";
+import { planLiveChecksHandler } from "./planLiveChecks.js";
+import { ingestLiveReadingHandler } from "./ingestLiveReading.js";
 
 /**
  * One MCP tool: a name, an agent-facing description, the zod *raw shape* used for
@@ -64,5 +68,19 @@ export const tools: readonly ToolDefinition[] = [
       "Apply autofixes to local CI-workflow files for the three gated rules (ci/no-paths-ignore, ci/no-concurrency, ci/no-timeout). Writes files; idempotent; never pushes git. REQUIRES confirmApply:true.",
     inputSchema: applyFixInputSchema.shape,
     handler: applyFixHandler,
+  },
+  {
+    name: "plan_live_checks",
+    description:
+      "Plan a live billing check for a provider. Returns the API-first decision and a consent notice; for a browser-fallback provider it emits a READ-ONLY Playwright snippet (for the playwriter MCP server) ONLY with confirmLive:true. costguard never drives the browser itself.",
+    inputSchema: planLiveChecksInputSchema.shape,
+    handler: planLiveChecksHandler,
+  },
+  {
+    name: "ingest_live_reading",
+    description:
+      "Reconcile a billing reading the playwriter MCP server returned into a Finding. Unparseable readings become a kind:diagnostic Finding (excluded from totals); never fabricates a number.",
+    inputSchema: ingestLiveReadingInputSchema.shape,
+    handler: ingestLiveReadingHandler,
   },
 ];

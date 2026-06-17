@@ -36460,7 +36460,10 @@ var applyFixInputSchema = external_exports.object({
 });
 var planLiveChecksInputSchema = external_exports.object({
   provider: external_exports.string(),
-  workspaceDir: external_exports.string().optional()
+  workspaceDir: external_exports.string().optional(),
+  // Explicit per-run consent (gate 2). Without it the tool returns the consent
+  // notice and the API-first decision but withholds the actionable browser snippet.
+  confirmLive: external_exports.boolean().optional()
 });
 var ingestLiveReadingInputSchema = external_exports.object({
   provider: external_exports.string(),
@@ -43442,6 +43445,101 @@ function applyFixHandler(args) {
   return { content: [{ type: "text", text: JSON.stringify(payload) }], structuredContent: payload };
 }
 
+// src/mcp/live/decide.ts
+function decideLiveStrategy(provider, env) {
+  const mod = getProviderModule(provider);
+  const apiFirst = mod !== void 0 && mod.resolveToken(env) !== void 0;
+  return { apiFirst };
+}
+
+// src/mcp/live/consent.ts
+var CONSENT_NOTICE = [
+  "Live mode performs READ-ONLY browser navigation over your already-logged-in",
+  "session, conducted by the playwriter MCP server \u2014 not by costguard. costguard",
+  "never drives the browser, never submits forms or replays credentials, and never",
+  "reads cookies, localStorage, sessionStorage, or screenshots \u2014 only rendered",
+  "billing figures. It is opt-in and requires your explicit per-run confirmation",
+  "(confirmLive:true) before any snippet is emitted."
+].join(" ");
+function liveConsentGranted(confirmLive) {
+  return confirmLive === true;
+}
+
+// src/mcp/live/playbooks/index.ts
+var PLAYBOOKS = {};
+function playbookFor(provider) {
+  return PLAYBOOKS[provider];
+}
+
+// src/mcp/tools/planLiveChecks.ts
+function planLiveChecksHandler(args) {
+  const { provider, confirmLive } = planLiveChecksInputSchema.parse(args);
+  const { apiFirst } = decideLiveStrategy(provider, process.env);
+  const planId = `${provider}-${Date.now().toString(36)}`;
+  const snippet = !apiFirst && liveConsentGranted(confirmLive) ? playbookFor(provider) : void 0;
+  const playbook = {
+    planId,
+    provider,
+    apiFirst,
+    consentNotice: CONSENT_NOTICE,
+    ...snippet !== void 0 ? {
+      billingUrl: snippet.billingUrl,
+      readOnlySnippet: snippet.readOnlySnippet,
+      parseSpec: snippet.parseSpec
+    } : {}
+  };
+  return { content: [{ type: "text", text: JSON.stringify(playbook) }], structuredContent: playbook };
+}
+
+// src/mcp/tools/ingestLiveReading.ts
+function ingestLiveReadingHandler(args) {
+  const { provider, reading } = ingestLiveReadingInputSchema.parse(args);
+  const monthly = extractMonthlyUsd(provider, reading.values);
+  const finding = monthly === void 0 ? {
+    workspace: provider,
+    provider,
+    rule: `${provider}/live-unparseable`,
+    severity: "info",
+    estMonthlyUsd: 0,
+    title: `Live billing reading not parseable for ${provider}`,
+    detail: `Could not extract a monthly USD figure from the live reading${reading.raw !== void 0 ? `: ${reading.raw}` : ""}.`,
+    fix: "Confirm the billing page rendered a monthly total, or read via the provider API.",
+    autofixable: false,
+    kind: "diagnostic"
+  } : {
+    workspace: provider,
+    provider,
+    rule: `${provider}/live-billing`,
+    severity: monthly > 0 ? "warn" : "info",
+    estMonthlyUsd: monthly,
+    title: `Live billing reading for ${provider}: $${monthly.toFixed(2)}/mo`,
+    detail: `Parsed a monthly figure of $${monthly.toFixed(2)} from the live reading.`,
+    fix: "Review the billing breakdown on the provider dashboard.",
+    autofixable: false,
+    kind: "cost"
+  };
+  const payload = { finding };
+  return { content: [{ type: "text", text: JSON.stringify(payload) }], structuredContent: payload };
+}
+var NAMED_KEYS = ["monthly", "monthlyUsd", "total", "amount", "estMonthlyUsd"];
+function extractMonthlyUsd(provider, values) {
+  const field = playbookFor(provider)?.parseSpec.monthlyUsdField;
+  if (field !== void 0) return coerceUsd(values[field]);
+  for (const key of NAMED_KEYS) {
+    const n = coerceUsd(values[key]);
+    if (n !== void 0) return n;
+  }
+  return void 0;
+}
+function coerceUsd(v) {
+  if (typeof v === "number") return Number.isFinite(v) ? v : void 0;
+  if (typeof v !== "string") return void 0;
+  const match = v.replace(/[,\s]/g, "").match(/\$?(\d+(?:\.\d+)?)/);
+  if (match?.[1] === void 0) return void 0;
+  const n = Number(match[1]);
+  return Number.isFinite(n) ? n : void 0;
+}
+
 // src/mcp/tools/index.ts
 var tools = [
   {
@@ -43473,6 +43571,18 @@ var tools = [
     description: "Apply autofixes to local CI-workflow files for the three gated rules (ci/no-paths-ignore, ci/no-concurrency, ci/no-timeout). Writes files; idempotent; never pushes git. REQUIRES confirmApply:true.",
     inputSchema: applyFixInputSchema.shape,
     handler: applyFixHandler
+  },
+  {
+    name: "plan_live_checks",
+    description: "Plan a live billing check for a provider. Returns the API-first decision and a consent notice; for a browser-fallback provider it emits a READ-ONLY Playwright snippet (for the playwriter MCP server) ONLY with confirmLive:true. costguard never drives the browser itself.",
+    inputSchema: planLiveChecksInputSchema.shape,
+    handler: planLiveChecksHandler
+  },
+  {
+    name: "ingest_live_reading",
+    description: "Reconcile a billing reading the playwriter MCP server returned into a Finding. Unparseable readings become a kind:diagnostic Finding (excluded from totals); never fabricates a number.",
+    inputSchema: ingestLiveReadingInputSchema.shape,
+    handler: ingestLiveReadingHandler
   }
 ];
 
