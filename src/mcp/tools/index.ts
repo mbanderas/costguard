@@ -4,10 +4,14 @@ import {
   auditWorkspaceInputSchema,
   discoverProvidersInputSchema,
   auditSiteInputSchema,
+  planFixInputSchema,
+  applyFixInputSchema,
 } from "../schemas.js";
 import { auditWorkspaceHandler } from "./auditWorkspace.js";
 import { discoverProvidersHandler } from "./discoverProviders.js";
 import { auditSiteHandler } from "./auditSite.js";
+import { planFixHandler } from "./planFix.js";
+import { applyFixHandler } from "./applyFix.js";
 
 /**
  * One MCP tool: a name, an agent-facing description, the zod *raw shape* used for
@@ -46,5 +50,19 @@ export const tools: readonly ToolDefinition[] = [
       "Run read-only GET-only live-site checks against the given URLs (no browser, no form submit, no credential replay). Returns a Findings envelope.",
     inputSchema: auditSiteInputSchema.shape,
     handler: auditSiteHandler,
+  },
+  {
+    name: "plan_fix",
+    description:
+      "Dry-run the autofixers for the given findings: returns unified diffs only and writes NOTHING. Safe preview before apply_fix.",
+    inputSchema: planFixInputSchema.shape,
+    handler: planFixHandler,
+  },
+  {
+    name: "apply_fix",
+    description:
+      "Apply autofixes to local CI-workflow files for the three gated rules (ci/no-paths-ignore, ci/no-concurrency, ci/no-timeout). Writes files; idempotent; never pushes git. REQUIRES confirmApply:true.",
+    inputSchema: applyFixInputSchema.shape,
+    handler: applyFixHandler,
   },
 ];
