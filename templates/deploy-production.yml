@@ -33,7 +33,7 @@ jobs:
     needs: [smoke]
     environment:
       name: production
-      url: 'https://getgameframe.com'
+      url: 'https://app.example.com'
     runs-on: ubuntu-latest
     env:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -44,7 +44,7 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Build backend with sourcemaps
-        run: pnpm --filter @gameframe/backend build
+        run: pnpm --filter @acme/backend build
 
       - name: Upload backend sourcemaps to Sentry
         if: ${{ env.SENTRY_AUTH_TOKEN != '' && env.SENTRY_ORG != '' }}
@@ -62,9 +62,9 @@ jobs:
         env:
           VITE_GIT_COMMIT_SHA: ${{ github.sha }}
           SENTRY_PROJECT_FRONTEND_APP: ${{ secrets.SENTRY_PROJECT_FRONTEND_APP }}
-        run: pnpm --filter @gameframe/app build
+        run: pnpm --filter @acme/app build
 
       - name: Build marketing site with sourcemaps
         env:
           SENTRY_PROJECT_FRONTEND_WEB: ${{ secrets.SENTRY_PROJECT_FRONTEND_WEB }}
-        run: pnpm --filter @gameframe/web build
+        run: pnpm --filter @acme/web build

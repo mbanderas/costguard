@@ -46,7 +46,7 @@ jobs:
     env:
       # assertNotProduction guard — the harness refuses any Supabase URL
       # containing this ref, even though the stack here is fully local.
-      GAMEFRAME_PROD_PROJECT_REF: pwbijmbobzysolnvzevy
+      ACME_PROD_PROJECT_REF: your-project-ref
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup

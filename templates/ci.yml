@@ -79,15 +79,15 @@ jobs:
       # `supabase start` stack. parity-perm-E6 is a live-DB integration
       # test whose env-presence skip guard is fooled by sibling tests that
       # set dummy SUPABASE_* env — exclude it here, run it in tagged-rls.
-      - run: pnpm --filter @gameframe/types test
-      - run: pnpm --filter @gameframe/design test
-      - run: pnpm --filter @gameframe/email-templates test
-      - run: pnpm --filter @gameframe/ui test
+      - run: pnpm --filter @acme/types test
+      - run: pnpm --filter @acme/design test
+      - run: pnpm --filter @acme/email-templates test
+      - run: pnpm --filter @acme/ui test
       # SPEC-22: per-primitive bundle-size budgets (.size-limit.json).
-      - run: pnpm --filter @gameframe/ui size-check
-      - run: pnpm --filter @gameframe/app test
-      - run: pnpm --filter @gameframe/web test
-      - run: pnpm --filter @gameframe/backend test -- --exclude 'src/__rls__/**' --exclude 'test/integration/rls-*.test.ts' --exclude 'test/integration/parity-perm-E6-contractor-expiry.test.ts' --exclude 'src/lib/__tests__/db.rls.test.ts' --exclude 'test/helpers/asUser.test.ts'
+      - run: pnpm --filter @acme/ui size-check
+      - run: pnpm --filter @acme/app test
+      - run: pnpm --filter @acme/web test
+      - run: pnpm --filter @acme/backend test -- --exclude 'src/__rls__/**' --exclude 'test/integration/rls-*.test.ts' --exclude 'test/integration/parity-perm-E6-contractor-expiry.test.ts' --exclude 'src/lib/__tests__/db.rls.test.ts' --exclude 'test/helpers/asUser.test.ts'
       - run: pnpm test:scripts
 
   no-source-maps-in-prod:
@@ -117,7 +117,7 @@ jobs:
     env:
       # assertNotProduction guard — the harness refuses any Supabase URL
       # containing this ref, even though the stack here is local.
-      GAMEFRAME_PROD_PROJECT_REF: pwbijmbobzysolnvzevy
+      ACME_PROD_PROJECT_REF: your-project-ref
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -132,11 +132,11 @@ jobs:
             s/^DB_URL="?([^"]*)"?$/SUPABASE_TEST_DB_URL=\1/p
           ' >> "$GITHUB_ENV"
       - name: RLS integration tests
-        run: pnpm --filter @gameframe/backend test:integration
+        run: pnpm --filter @acme/backend test:integration
 
   # Pending SPEC-04 follow-up: Playwright config + pnpm test:e2e script. Activate by
   # replacing `if: ${{ false }}` with the canonical SPEC-31 path-filter once
-  # @gameframe/app and @gameframe/backend ship Playwright tests. The full path-filter
+  # @acme/app and @acme/backend ship Playwright tests. The full path-filter
   # and activation example live in docs/setup/CI_CD.md under "Deferred items".
   e2e:
     name: e2e

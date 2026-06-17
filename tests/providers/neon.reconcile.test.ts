@@ -36,9 +36,9 @@ describe("neonModule.check — main scenario", () => {
   it("returns orphaned-project, idle-branch, and compute-overage findings", async () => {
     const args = {
       ctx: {
-        workspace: "govyn",
+        workspace: "api-service",
         workspaceDir: ".",
-        config: resolveWorkspaceConfig(DEFAULT_CONFIG, "govyn"),
+        config: resolveWorkspaceConfig(DEFAULT_CONFIG, "api-service"),
       },
       entry: {
         providers: ["neon"],
@@ -105,9 +105,9 @@ describe("neonModule.check — clean case", () => {
 
     const args = {
       ctx: {
-        workspace: "govyn",
+        workspace: "api-service",
         workspaceDir: ".",
-        config: resolveWorkspaceConfig(DEFAULT_CONFIG, "govyn"),
+        config: resolveWorkspaceConfig(DEFAULT_CONFIG, "api-service"),
       },
       entry: {
         providers: ["neon"],
@@ -134,9 +134,9 @@ describe("neonModule.check — absent active", () => {
   it("returns [] when neon active entry is absent", async () => {
     const args = {
       ctx: {
-        workspace: "govyn",
+        workspace: "api-service",
         workspaceDir: ".",
-        config: resolveWorkspaceConfig(DEFAULT_CONFIG, "govyn"),
+        config: resolveWorkspaceConfig(DEFAULT_CONFIG, "api-service"),
       },
       entry: {
         providers: ["neon"],

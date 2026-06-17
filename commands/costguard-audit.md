@@ -21,7 +21,7 @@ registry from the **current working directory** — run from a repo that has one
    ```
 
    - No workspace named and no `--all`: the CLI lists what is available — pass
-     a workspace name (e.g. `CiteSurge`) or `--all`.
+     a workspace name (e.g. `web-app`) or `--all`.
    - `--providers all` (or a comma list like `--providers github,netlify`) adds
      read-only cloud billing checks; provider modules whose token env var is
      absent are skipped, not failed.

@@ -8,7 +8,7 @@
 ## 1. Problem
 
 Across the workspaces, real money leaks in three recurring shapes. Each was found and
-fixed by hand recently in `gameframe-v2`:
+fixed by hand recently in `web-app`:
 
 | Real fix | Failure mode | Where the signal lives |
 |----------|--------------|------------------------|
@@ -48,8 +48,8 @@ Open Claude (or a plain shell) in the `costguard` workspace and run:
 
 ```bash
 costguard audit --all                  # every registered workspace
-costguard audit gameframe-v2 govyn     # selected workspaces
-costguard audit gameframe-v2 --ci-only # static CI checks only, no creds
+costguard audit web-app api-service     # selected workspaces
+costguard audit web-app --ci-only # static CI checks only, no creds
 costguard scan --crons                 # cron-frequency checks only
 costguard providers --check            # which billing tokens are present/valid
 costguard report --last                # re-print last run's report
@@ -105,15 +105,15 @@ Single source of truth for what each workspace uses and what is *expected* to be
 {
   "root": "~/Workspaces",
   "workspaces": {
-    "gameframe-v2": {
+    "web-app": {
       "providers": ["github", "supabase", "railway", "netlify"],
       "active": {
         "supabase": { "projects": ["<ref>"], "compute": "micro", "pitr": false },
         "railway":  { "services": ["backend"] },
-        "github":   { "repo": "mbanderas/gameframe-v2" }
+        "github":   { "repo": "mbanderas/web-app" }
       }
     },
-    "govyn": {
+    "api-service": {
       "providers": ["github", "neon", "netlify"],
       "active": { "neon": { "projects": ["<id>"] } }
     }
@@ -154,7 +154,7 @@ Report = findings grouped by workspace, sorted by `estMonthlyUsd` desc, with a g
 Runs over each workspace's working tree. Fast, deterministic, the default.
 
 ### 7.1 CI smells (`.github/workflows/*.yml`)
-Diff each workflow against a **known-good template** (gameframe's current state, §12):
+Diff each workflow against a **known-good template** (the reference workspace's current state, §12):
 
 | Rule id | Detects | Fix |
 |---------|---------|-----|
@@ -262,7 +262,7 @@ Exit non-zero when any `high` finding exists (CI-gate friendly).
 
 ## 12. Reference "known-good" templates
 
-gameframe-v2's current workflows, post-#65, are the baseline the CI rules diff against:
+web-app's current workflows, post-#65, are the baseline the CI rules diff against:
 
 - `ci.yml` — `pull_request` only + `paths-ignore: ['**.md','docs/**']` + `concurrency`.
 - `deploy-production.yml` / `deploy-staging.yml` — `push` + `paths-ignore` + `concurrency`.

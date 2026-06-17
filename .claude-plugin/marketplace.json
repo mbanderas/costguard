@@ -2,7 +2,7 @@
   "name": "costguard",
   "description": "Self-hosted marketplace for the Costguard cost-audit plugin.",
   "owner": {
-    "name": "Mark Banderas",
+    "name": "Mark Laursen",
     "url": "https://github.com/mbanderas"
   },
   "plugins": [
