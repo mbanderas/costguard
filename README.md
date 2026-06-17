@@ -12,9 +12,9 @@
 </p>
 
 CostGuard audits your repos and cloud providers for CI and infrastructure cost
-leaks. It is built for developers who run several projects on GitHub Actions,
-Supabase, Railway, Netlify, and Neon and want a single command that surfaces what
-is being wasted and exactly how to fix it. On repositories that have never been
+leaks. It is built for developers who run several projects across GitHub Actions,
+Vercel, Supabase, Railway, Netlify, Neon, Cloudflare, and more, and want a single
+command that surfaces what is being wasted and exactly how to fix it. On repositories that have never been
 optimized, the static audit alone typically reduces CI spend by 60–80%.
 
 <p align="center">
@@ -222,6 +222,14 @@ modules are fully exercised by fixtures. All tokens are used **read-only**.
 | `RAILWAY_TOKEN` / `RAILWAY_API_TOKEN` | railway | Services, deploys, usage (read-only GraphQL) |
 | `NETLIFY_AUTH_TOKEN` / `NETLIFY_TOKEN` | netlify | Sites, build minutes, bandwidth |
 | `NEON_API_KEY` / `NEON_API_TOKEN` | neon | Projects, branches, compute hours |
+| `VERCEL_TOKEN` / `VERCEL_API_TOKEN` | vercel | Team deploying seats vs deploy activity |
+| `SENTRY_AUTH_TOKEN` / `SENTRY_TOKEN` | sentry | Monthly error events vs plan quota |
+| `UPSTASH_API_KEY` / `UPSTASH_TOKEN` | upstash | Redis DB commands + storage |
+| `ATLAS_API_KEY` / `MONGODB_ATLAS_TOKEN` | atlas | Cluster tiers + data size |
+| `CLOUDFLARE_API_TOKEN` / `CF_API_TOKEN` | cloudflare | R2 buckets, storage, class A/B ops |
+| `FLY_API_TOKEN` / `FLY_ACCESS_TOKEN` | fly | Apps + dedicated IPv4 addresses |
+| `RENDER_API_KEY` / `RENDER_TOKEN` | render | Service instance plans |
+| `DD_API_KEY` / `DATADOG_API_KEY` | datadog | Enables the module (declaration-only; APM host counts read from config) |
 | `COSTGUARD_DIGEST_WEBHOOK` | — | Optional `digest --post` destination (inert in this build) |
 
 Use `providers --check` to confirm which tokens the environment exposes without
@@ -231,9 +239,10 @@ revealing any value.
 
 ## Provider modules
 
-Half B ships five read-only, opt-in provider modules. Each reads live billed
-resources, reconciles them against the registry `active{}` allowlist, and emits
-`orphaned` and `over-provisioned` findings with a best-effort `$/mo`.
+CostGuard ships **thirteen** read-only, opt-in provider modules, and the roster
+is actively expanding. Each reads live billed resources, reconciles them against
+the registry `active{}` allowlist, and emits `orphaned` and `over-provisioned`
+findings with a best-effort `$/mo`.
 
 | Module | Reads | Flags |
 |--------|-------|-------|
@@ -242,10 +251,23 @@ resources, reconciles them against the registry `active{}` allowlist, and emits
 | **railway** | Services, deploys, usage (read-only GraphQL queries) | idle services; deploys never torn down |
 | **netlify** | Sites, build minutes, bandwidth | build-minute spend; runaway bandwidth |
 | **neon** | Projects, branches, compute hours | idle branches; orphaned (defunct but billed) projects |
+| **vercel** | Team deploying seats vs deploy activity | idle paid deploying seats |
+| **sentry** | Monthly error events | error-event overage vs plan quota |
+| **upstash** | Redis DB commands + storage | pay-as-you-go cost above a fixed plan |
+| **atlas** | Cluster tiers + data size | oversized cluster for its data |
+| **cloudflare** | R2 buckets, storage, class A/B ops | operation-heavy R2 spend |
+| **fly** | Apps + dedicated IPv4 addresses | dedicated IPv4 on non-critical apps |
+| **render** | Service instance plans | oversized instance for its environment |
+| **datadog** | APM host counts (declared in config) | excess provisioned APM hosts |
 
-All provider access is HTTP `GET`; the railway module uses GraphQL **queries**
-only, guarded against mutations. No module ever issues a write or delete call. A
-module activates only when its token (above) is present; otherwise it is skipped.
+All live provider access is HTTP `GET`; the railway module uses GraphQL
+**queries** only, guarded against mutations. The datadog module is
+declaration-only — it reconciles operator-declared host counts offline and makes
+no network call. No module ever issues a write or delete call. A module
+activates only when its token (above) is present; otherwise it is skipped.
+
+More providers are on the way — coverage is expanding as new billing surfaces are
+researched and sourced.
 
 ---
 

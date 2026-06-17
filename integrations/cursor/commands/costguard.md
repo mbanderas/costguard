@@ -1,7 +1,7 @@
 Costguard — audit repos and cloud accounts for CI/cron and spend waste, and auto-fix CI files.
 
 Drive **Costguard**, a read-only cost auditor (CI minutes, cron schedules, and
-cloud provider billing: GitHub Actions, Supabase, Railway, Netlify, Neon). It
+cloud provider billing: GitHub Actions, Vercel, Supabase, Railway, Netlify, Neon, Cloudflare, and more). It
 finds waste, estimates the monthly dollar cost, and can surgically auto-fix CI
 workflow files. It never writes to provider accounts, never pushes git, and
 never prints tokens.
