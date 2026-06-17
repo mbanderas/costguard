@@ -1,11 +1,37 @@
 {
-  "name": "costguard",
+  "name": "costguard-mcp",
   "version": "0.1.0",
+  "description": "Audit your repos and cloud providers for CI and infrastructure cost leaks. Ships a CLI and an MCP server for AI coding agents (Claude Code, Codex, any MCP host).",
   "type": "module",
   "private": false,
   "license": "MIT",
+  "author": "Mark Laursen",
+  "homepage": "https://github.com/mbanderas/costguard#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mbanderas/costguard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mbanderas/costguard/issues"
+  },
+  "keywords": [
+    "cost",
+    "cost-optimization",
+    "finops",
+    "ci",
+    "github-actions",
+    "cloud-cost",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "claude-code",
+    "audit"
+  ],
   "engines": {
     "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "bin": {
     "costguard": "./dist/cli/index.js",
