@@ -198,7 +198,7 @@ describe("openPrGated", () => {
   });
 
   it("returns opened:false (inert stub) when openPr is true and token present", () => {
-    const result = openPrGated({ openPr: true }, { GITHUB_TOKEN: "ghp_real_token" });
+    const result = openPrGated({ openPr: true }, { GITHUB_TOKEN: "test-github-token" });
     expect(result.opened).toBe(false);
     expect(result.message).toMatch(/gated|not enabled/i);
   });
