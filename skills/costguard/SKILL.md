@@ -1,6 +1,7 @@
 ---
 name: costguard
 description: Find and quantify CI/cron and cloud-spend waste. Audit repos, run read-only provider billing checks, preview or apply CI auto-fixes, and render a monthly cost digest.
+license: MIT
 ---
 
 Drive **Costguard** — a read-only cost auditor for CI minutes, cron schedules,

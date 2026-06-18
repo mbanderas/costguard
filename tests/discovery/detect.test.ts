@@ -123,8 +123,8 @@ describe("detectProviders — env-name aliases and security", () => {
   });
 
   it("NEVER includes an env VALUE in any Detection (R10)", () => {
-    const secret = "s3cr3t-do-not-leak-XYZ";
-    write(".env", `SENTRY_DSN=https://abc@o0.ingest.sentry.io/${secret}\n`);
+    const secret = "placeholder-not-a-real-value";
+    write(".env", `SENTRY_DSN=${secret}\n`);
     const result = detectProviders(dir, { env: {} });
     const blob = JSON.stringify(result);
     expect(blob).not.toContain(secret);

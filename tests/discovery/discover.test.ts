@@ -39,13 +39,13 @@ function write(rel: string, content = ""): void {
   fs.writeFileSync(p, content, "utf8");
 }
 
-const SECRET = "do-not-leak-9f3a";
+const SECRET = "placeholder-not-a-real-value";
 
 function multiProviderFixture(): void {
   write("vercel.json", "{}");
   write("wrangler.toml");
   write("package.json", JSON.stringify({ dependencies: { "@neondatabase/serverless": "^0.9", "dd-trace": "^5" } }));
-  write(".env", `UPSTASH_REDIS_REST_TOKEN=${SECRET}\nSENTRY_DSN=https://abc@o0.ingest.sentry.io/${SECRET}\n`);
+  write(".env", `UPSTASH_REDIS_REST_TOKEN=${SECRET}\nSENTRY_DSN=${SECRET}\n`);
 }
 
 describe("runDiscover — multi-provider repo (JSON)", () => {

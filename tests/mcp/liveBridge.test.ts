@@ -14,7 +14,7 @@ import { readOnlyViolations } from "./readOnlyOracle.js";
 
 describe("decideLiveStrategy", () => {
   it("API-first when a provider module exists and its token resolves from env", () => {
-    expect(decideLiveStrategy("github", { GITHUB_TOKEN: "ghp_test" }).apiFirst).toBe(true);
+    expect(decideLiveStrategy("github", { GITHUB_TOKEN: "test-github-token" }).apiFirst).toBe(true);
   });
 
   it("browser-fallback when a known provider has no resolvable token", () => {
@@ -85,7 +85,7 @@ describe("plan_live_checks handler", () => {
   }
 
   it("API-first provider (token in env): apiFirst true, consent notice, NO snippet", () => {
-    process.env["GH_TOKEN"] = "ghp_test_token";
+    process.env["GH_TOKEN"] = "test-github-token";
     try {
       const pb = playbook(planLiveChecksHandler({ provider: "github", confirmLive: true }));
       expect(pb.apiFirst).toBe(true);

@@ -1,0 +1,6 @@
+# HOL plugin-scanner config.
+# Test files are not part of the shipped plugin bundle; they contain
+# env-var-named fixtures (e.g. *_TOKEN, *_DSN) that the secret detector
+# flags as false positives. Exclude them from the scan.
+[scanner]
+ignore_paths = ["tests/**", "tests/*"]
