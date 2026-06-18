@@ -47005,7 +47005,9 @@ function loadRegistry(p) {
     raw = JSON.parse(fs2.readFileSync(filePath, "utf8"));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to parse registry JSON at ${filePath}: ${msg}`);
+    throw new Error(`Failed to parse registry JSON at ${filePath}: ${msg}`, {
+      cause: err
+    });
   }
   const result = WorkspaceRegistrySchema.safeParse(raw);
   if (!result.success) {
@@ -53020,7 +53022,7 @@ function readDepNames(dir) {
 function collectEnvNames(dir, env) {
   const names = /* @__PURE__ */ new Set();
   for (const key of Object.keys(env)) addEnvName(names, key);
-  let entries = [];
+  let entries;
   try {
     entries = fs17.readdirSync(dir, { withFileTypes: true });
   } catch {

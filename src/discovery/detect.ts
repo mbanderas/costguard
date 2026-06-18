@@ -89,7 +89,7 @@ function collectEnvNames(dir: string, env: Record<string, string | undefined>): 
   const names = new Set<string>();
   for (const key of Object.keys(env)) addEnvName(names, key);
 
-  let entries: fs.Dirent[] = [];
+  let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
   } catch {

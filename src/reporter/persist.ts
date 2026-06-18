@@ -132,7 +132,7 @@ export function loadLastRun(): PersistedRun | null {
     raw = JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to parse last-run.json: ${msg}`);
+    throw new Error(`Failed to parse last-run.json: ${msg}`, { cause: err });
   }
 
   return validatePersistedRun(raw);
