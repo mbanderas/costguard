@@ -24,3 +24,24 @@ jobs:
           fail_on_severity: high
           format: sarif
           upload_sarif: true
+
+      - name: Dump scanner findings (debug)
+        if: always()
+        run: |
+          f="$(find . -name 'ai-plugin-scanner.sarif' 2>/dev/null | head -1)"
+          echo "SARIF: $f"
+          python3 - "$f" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1]))
+          for run in data.get("runs", []):
+              rules = {r["id"]: r for r in run.get("tool", {}).get("driver", {}).get("rules", [])}
+              for res in run.get("results", []):
+                  rid = res.get("ruleId", "?")
+                  lvl = res.get("level", "?")
+                  msg = res.get("message", {}).get("text", "")
+                  loc = ""
+                  locs = res.get("locations", [])
+                  if locs:
+                      loc = locs[0].get("physicalLocation", {}).get("artifactLocation", {}).get("uri", "")
+                  print(f"[{lvl}] {rid} :: {loc} :: {msg}")
+          PY
