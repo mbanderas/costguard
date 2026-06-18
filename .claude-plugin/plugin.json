@@ -1,7 +1,7 @@
 {
   "name": "costguard",
   "version": "0.1.0",
-  "displayName": "Costguard",
+  "displayName": "Maestro: Costguard",
   "description": "Find and quantify cloud and CI spend waste from your coding agent. Costguard runs read-only billing checks (GitHub Actions, Supabase, Railway, Netlify, Neon), static CI/cron waste rules, dry-run-first auto-fixes for workflow files, and a monthly cost digest — all driven from your session via /costguard-audit, /costguard-fix, and /costguard-live, or the costguard skill. Never writes to provider accounts, never pushes git, never prints secrets.",
   "author": {
     "name": "Mark Laursen",
