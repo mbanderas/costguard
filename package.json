@@ -75,7 +75,7 @@
     "@types/js-yaml": "^4",
     "@types/node": "^25",
     "esbuild": "0.28.1",
-    "eslint": "^9",
+    "eslint": "^10",
     "tsx": "^4",
     "typescript": "^6",
     "typescript-eslint": "^8",
