@@ -605,6 +605,13 @@ pulls the runner image (~1GB), then caches it.
 
 ---
 
+## Related Projects
+
+- **[Maestro](https://github.com/mbanderas/maestro)**: Frontier multi-CLI fusion engine and orchestration discipline layer for AI coding agents. CostGuard finds the cost leaks; Maestro keeps the agents that fix them disciplined — verified done-claims, surgical scope, and a research-backed multi-agent gate.
+- **[Govyn](https://govynai.com)**: Open-source AI agent governance proxy — your agents never hold real API keys, stay within budget, and follow policy. CostGuard audits the spend; Govyn enforces the guardrails at runtime.
+
+---
+
 ## Links
 
 - **GitHub:** https://github.com/mbanderas/costguard
