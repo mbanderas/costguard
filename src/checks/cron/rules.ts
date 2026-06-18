@@ -6,14 +6,14 @@
  *   cron/overlap       — two hits fire on the same minute
  *   cron/unbounded     — recurring hit with guarded===false (may pile up)
  *
- * Uses cron-parser v4 to compute next occurrences.
+ * Uses cron-parser v5 to compute next occurrences.
  * Invalid / unparseable expressions are silently skipped.
  *
  * NOTE: .github/workflows on: schedule: is NOT scanned here.
  *       GitHub Actions schedule cost is owned by the CI module (rule ci/schedule-frequency).
  */
 
-import parser from "cron-parser";
+import { CronExpressionParser, type CronExpression } from "cron-parser";
 import type { Finding } from "../../types.js";
 import type { CheckContext } from "../../types.js";
 import type { CronHit } from "./parser.js";
@@ -28,9 +28,9 @@ const PROVIDER = "cron";
  * Returns null if the expression is unparseable or has fewer than 2 occurrences.
  */
 function minIntervalMinutes(expr: string, samples = 5): number | null {
-  let interval: ReturnType<typeof parser.parseExpression>;
+  let interval: CronExpression;
   try {
-    interval = parser.parseExpression(expr, { utc: true });
+    interval = CronExpressionParser.parse(expr, { tz: "UTC" });
   } catch {
     return null;
   }
@@ -66,7 +66,7 @@ function minIntervalMinutes(expr: string, samples = 5): number | null {
  */
 function nextOccurrenceMs(expr: string): number | null {
   try {
-    const interval = parser.parseExpression(expr, { utc: true });
+    const interval = CronExpressionParser.parse(expr, { tz: "UTC" });
     const next = interval.next() as { getTime(): number };
     return next.getTime();
   } catch {

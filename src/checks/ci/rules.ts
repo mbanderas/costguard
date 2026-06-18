@@ -1,4 +1,4 @@
-import parser from "cron-parser";
+import { CronExpressionParser } from "cron-parser";
 import type { Finding } from "../../types.js";
 import type { CheckContext } from "../../types.js";
 import type { WorkflowModel, PushTrigger } from "./parser.js";
@@ -370,10 +370,9 @@ function computeCronRunsPerDay(cronExpr: string): number {
     const startBefore = new Date("2023-12-31T23:59:00Z");
     const end = new Date("2024-01-02T00:00:00Z");
 
-    const it = parser.parseExpression(cronExpr, {
+    const it = CronExpressionParser.parse(cronExpr, {
       currentDate: startBefore,
       endDate: end,
-      iterator: false,
     });
 
     let count = 0;
@@ -398,9 +397,8 @@ function computeCronRunsPerDay(cronExpr: string): number {
 function minIntervalMinutes(cronExpr: string): number {
   try {
     const start = new Date("2023-12-31T23:59:00Z");
-    const it = parser.parseExpression(cronExpr, {
+    const it = CronExpressionParser.parse(cronExpr, {
       currentDate: start,
-      iterator: false,
     });
 
     const times: number[] = [];
