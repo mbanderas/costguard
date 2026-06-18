@@ -94,7 +94,9 @@ export function scanWorkspaces(root: string): WorkspaceRegistry {
     entries = fs.readdirSync(absRoot, { withFileTypes: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Cannot read workspaces root "${absRoot}": ${msg}`);
+    throw new Error(`Cannot read workspaces root "${absRoot}": ${msg}`, {
+      cause: err,
+    });
   }
 
   const workspaces: Record<string, WorkspaceEntry> = {};

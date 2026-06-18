@@ -15347,7 +15347,9 @@ function loadRegistry(p) {
     raw = JSON.parse(fs3.readFileSync(filePath, "utf8"));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to parse registry JSON at ${filePath}: ${msg}`);
+    throw new Error(`Failed to parse registry JSON at ${filePath}: ${msg}`, {
+      cause: err
+    });
   }
   const result = WorkspaceRegistrySchema.safeParse(raw);
   if (!result.success) {
@@ -29378,7 +29380,7 @@ function loadLastRun() {
     raw = JSON.parse(fs17.readFileSync(filePath, "utf8"));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to parse last-run.json: ${msg}`);
+    throw new Error(`Failed to parse last-run.json: ${msg}`, { cause: err });
   }
   return validatePersistedRun(raw);
 }
@@ -30048,7 +30050,7 @@ function readDepNames(dir) {
 function collectEnvNames(dir, env) {
   const names = /* @__PURE__ */ new Set();
   for (const key of Object.keys(env)) addEnvName(names, key);
-  let entries = [];
+  let entries;
   try {
     entries = fs19.readdirSync(dir, { withFileTypes: true });
   } catch {
@@ -30149,7 +30151,9 @@ function scanWorkspaces(root) {
     entries = fs20.readdirSync(absRoot, { withFileTypes: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Cannot read workspaces root "${absRoot}": ${msg}`);
+    throw new Error(`Cannot read workspaces root "${absRoot}": ${msg}`, {
+      cause: err
+    });
   }
   const workspaces = {};
   for (const entry of entries) {

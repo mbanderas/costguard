@@ -19,7 +19,9 @@ export function loadRegistry(p?: string): WorkspaceRegistry {
     raw = JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to parse registry JSON at ${filePath}: ${msg}`);
+    throw new Error(`Failed to parse registry JSON at ${filePath}: ${msg}`, {
+      cause: err,
+    });
   }
 
   const result = WorkspaceRegistrySchema.safeParse(raw);
