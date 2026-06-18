@@ -21986,6 +21986,406 @@ var init_zod = __esm({
   }
 });
 
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/types.js
+var require_types2 = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/types.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronField.js
+var require_CronField = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronField.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronField = void 0;
+    var CronField = class _CronField {
+      #hasLastChar = false;
+      #hasQuestionMarkChar = false;
+      #wildcard = false;
+      #values = [];
+      options = { rawValue: "" };
+      /**
+       * Returns the minimum value allowed for this field.
+       */
+      /* istanbul ignore next */
+      static get min() {
+        throw new Error("min must be overridden");
+      }
+      /**
+       * Returns the maximum value allowed for this field.
+       */
+      /* istanbul ignore next */
+      static get max() {
+        throw new Error("max must be overridden");
+      }
+      /**
+       * Returns the allowed characters for this field.
+       */
+      /* istanbul ignore next */
+      static get chars() {
+        return Object.freeze([]);
+      }
+      /**
+       * Returns the regular expression used to validate this field.
+       */
+      static get validChars() {
+        return /^[?,*\dH/-]+$|^.*H\(\d+-\d+\)\/\d+.*$|^.*H\(\d+-\d+\).*$|^.*H\/\d+.*$/;
+      }
+      /**
+       * Returns the constraints for this field.
+       */
+      static get constraints() {
+        return { min: this.min, max: this.max, chars: this.chars, validChars: this.validChars };
+      }
+      /**
+       * CronField constructor. Initializes the field with the provided values.
+       * @param {number[] | string[]} values - Values for this field
+       * @param {CronFieldOptions} [options] - Options provided by the parser
+       * @throws {TypeError} if the constructor is called directly
+       * @throws {Error} if validation fails
+       */
+      constructor(values, options = { rawValue: "" }) {
+        if (!Array.isArray(values)) {
+          throw new Error(`${this.constructor.name} Validation error, values is not an array`);
+        }
+        if (!(values.length > 0)) {
+          throw new Error(`${this.constructor.name} Validation error, values contains no values`);
+        }
+        this.options = {
+          ...options,
+          rawValue: options.rawValue ?? ""
+        };
+        this.#values = values.sort(_CronField.sorter);
+        this.#wildcard = this.options.wildcard !== void 0 ? this.options.wildcard : this.#isWildcardValue();
+        this.#hasLastChar = this.options.rawValue.includes("L") || values.includes("L");
+        this.#hasQuestionMarkChar = this.options.rawValue.includes("?") || values.includes("?");
+      }
+      /**
+       * Returns the minimum value allowed for this field.
+       * @returns {number}
+       */
+      get min() {
+        return this.constructor.min;
+      }
+      /**
+       * Returns the maximum value allowed for this field.
+       * @returns {number}
+       */
+      get max() {
+        return this.constructor.max;
+      }
+      /**
+       * Returns an array of allowed special characters for this field.
+       * @returns {string[]}
+       */
+      get chars() {
+        return this.constructor.chars;
+      }
+      /**
+       * Indicates whether this field has a "last" character.
+       * @returns {boolean}
+       */
+      get hasLastChar() {
+        return this.#hasLastChar;
+      }
+      /**
+       * Indicates whether this field has a "question mark" character.
+       * @returns {boolean}
+       */
+      get hasQuestionMarkChar() {
+        return this.#hasQuestionMarkChar;
+      }
+      /**
+       * Indicates whether this field is a wildcard.
+       * @returns {boolean}
+       */
+      get isWildcard() {
+        return this.#wildcard;
+      }
+      /**
+       * Returns an array of allowed values for this field.
+       * @returns {CronFieldType}
+       */
+      get values() {
+        return this.#values;
+      }
+      /**
+       * Helper function to sort values in ascending order.
+       * @param {number | string} a - First value to compare
+       * @param {number | string} b - Second value to compare
+       * @returns {number} - A negative, zero, or positive value, depending on the sort order
+       */
+      static sorter(a, b) {
+        const aIsNumber = typeof a === "number";
+        const bIsNumber = typeof b === "number";
+        if (aIsNumber && bIsNumber)
+          return a - b;
+        if (!aIsNumber && !bIsNumber)
+          return a.localeCompare(b);
+        return aIsNumber ? (
+          /* istanbul ignore next - A will always be a number until L-2 is supported */
+          -1
+        ) : 1;
+      }
+      /**
+       * Find the next (or previous when `reverse` is true) numeric value in a sorted list.
+       * Returns null if there's no value strictly after/before the current one.
+       *
+       * @param values - Sorted numeric values
+       * @param currentValue - Current value to compare against
+       * @param reverse - When true, search in reverse for previous smaller value
+       */
+      static findNearestValueInList(values, currentValue, reverse = false) {
+        if (reverse) {
+          for (let i = values.length - 1; i >= 0; i--) {
+            if (values[i] < currentValue)
+              return values[i];
+          }
+          return null;
+        }
+        for (let i = 0; i < values.length; i++) {
+          if (values[i] > currentValue)
+            return values[i];
+        }
+        return null;
+      }
+      /**
+       * Instance helper that operates on this field's numeric `values`.
+       *
+       * @param currentValue - Current value to compare against
+       * @param reverse - When true, search in reverse for previous smaller value
+       */
+      findNearestValue(currentValue, reverse = false) {
+        return this.constructor.findNearestValueInList(this.values, currentValue, reverse);
+      }
+      /**
+       * Serializes the field to an object.
+       * @returns {SerializedCronField}
+       */
+      serialize() {
+        return {
+          wildcard: this.#wildcard,
+          values: this.#values
+        };
+      }
+      /**
+       * Validates the field values against the allowed range and special characters.
+       * @throws {Error} if validation fails
+       */
+      validate() {
+        let badValue;
+        const charsString = this.chars.length > 0 ? ` or chars ${this.chars.join("")}` : "";
+        const charTest = (value) => (char) => new RegExp(`^\\d{0,2}${char}$`).test(value);
+        const rangeTest = (value) => {
+          badValue = value;
+          return typeof value === "number" ? value >= this.min && value <= this.max : this.chars.some(charTest(value));
+        };
+        const isValidRange = this.#values.every(rangeTest);
+        if (!isValidRange) {
+          throw new Error(`${this.constructor.name} Validation error, got value ${badValue} expected range ${this.min}-${this.max}${charsString}`);
+        }
+        const duplicate = this.#values.find((value, index) => this.#values.indexOf(value) !== index);
+        if (duplicate) {
+          throw new Error(`${this.constructor.name} Validation error, duplicate values found: ${duplicate}`);
+        }
+      }
+      /**
+       * Determines if the field is a wildcard based on the values.
+       * When options.rawValue is not empty, it checks if the raw value is a wildcard, otherwise it checks if all values in the range are included.
+       * @returns {boolean}
+       */
+      #isWildcardValue() {
+        if (this.options.rawValue.length > 0) {
+          return ["*", "?"].includes(this.options.rawValue);
+        }
+        return Array.from({ length: this.max - this.min + 1 }, (_, i) => i + this.min).every((value) => this.#values.includes(value));
+      }
+    };
+    exports.CronField = CronField;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronDayOfMonth.js
+var require_CronDayOfMonth = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronDayOfMonth.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronDayOfMonth = void 0;
+    var CronField_1 = require_CronField();
+    var MIN_DAY = 1;
+    var MAX_DAY = 31;
+    var DAY_CHARS = Object.freeze(["L"]);
+    var CronDayOfMonth = class extends CronField_1.CronField {
+      static get min() {
+        return MIN_DAY;
+      }
+      static get max() {
+        return MAX_DAY;
+      }
+      static get chars() {
+        return DAY_CHARS;
+      }
+      static get validChars() {
+        return /^[?,*\dLH/-]+$|^.*H\(\d+-\d+\)\/\d+.*$|^.*H\(\d+-\d+\).*$|^.*H\/\d+.*$/;
+      }
+      /**
+       * CronDayOfMonth constructor. Initializes the "day of the month" field with the provided values.
+       * @param {DayOfMonthRange[]} values - Values for the "day of the month" field
+       * @param {CronFieldOptions} [options] - Options provided by the parser
+       * @throws {Error} if validation fails
+       */
+      constructor(values, options) {
+        super(values, options);
+        this.validate();
+      }
+      /**
+       * Returns an array of allowed values for the "day of the month" field.
+       * @returns {DayOfMonthRange[]}
+       */
+      get values() {
+        return super.values;
+      }
+    };
+    exports.CronDayOfMonth = CronDayOfMonth;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronDayOfWeek.js
+var require_CronDayOfWeek = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronDayOfWeek.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronDayOfWeek = void 0;
+    var CronField_1 = require_CronField();
+    var MIN_DAY = 0;
+    var MAX_DAY = 7;
+    var DAY_CHARS = Object.freeze(["L"]);
+    var CronDayOfWeek = class extends CronField_1.CronField {
+      static get min() {
+        return MIN_DAY;
+      }
+      static get max() {
+        return MAX_DAY;
+      }
+      static get chars() {
+        return DAY_CHARS;
+      }
+      static get validChars() {
+        return /^[?,*\dLH#/-]+$|^.*H\(\d+-\d+\)\/\d+.*$|^.*H\(\d+-\d+\).*$|^.*H\/\d+.*$/;
+      }
+      /**
+       * CronDayOfTheWeek constructor. Initializes the "day of the week" field with the provided values.
+       * @param {DayOfWeekRange[]} values - Values for the "day of the week" field
+       * @param {CronFieldOptions} [options] - Options provided by the parser
+       */
+      constructor(values, options) {
+        super(values, options);
+        this.validate();
+      }
+      /**
+       * Returns an array of allowed values for the "day of the week" field.
+       * @returns {DayOfWeekRange[]}
+       */
+      get values() {
+        return super.values;
+      }
+      /**
+       * Returns the nth day of the week if specified in the cron expression.
+       * This is used for the '#' character in the cron expression.
+       * @returns {number} The nth day of the week (1-5) or 0 if not specified.
+       */
+      get nthDay() {
+        return this.options.nthDayOfWeek ?? 0;
+      }
+    };
+    exports.CronDayOfWeek = CronDayOfWeek;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronHour.js
+var require_CronHour = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronHour.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronHour = void 0;
+    var CronField_1 = require_CronField();
+    var MIN_HOUR = 0;
+    var MAX_HOUR = 23;
+    var HOUR_CHARS = Object.freeze([]);
+    var CronHour = class extends CronField_1.CronField {
+      static get min() {
+        return MIN_HOUR;
+      }
+      static get max() {
+        return MAX_HOUR;
+      }
+      static get chars() {
+        return HOUR_CHARS;
+      }
+      /**
+       * CronHour constructor. Initializes the "hour" field with the provided values.
+       * @param {HourRange[]} values - Values for the "hour" field
+       * @param {CronFieldOptions} [options] - Options provided by the parser
+       */
+      constructor(values, options) {
+        super(values, options);
+        this.validate();
+      }
+      /**
+       * Returns an array of allowed values for the "hour" field.
+       * @returns {HourRange[]}
+       */
+      get values() {
+        return super.values;
+      }
+    };
+    exports.CronHour = CronHour;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronMinute.js
+var require_CronMinute = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronMinute.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronMinute = void 0;
+    var CronField_1 = require_CronField();
+    var MIN_MINUTE = 0;
+    var MAX_MINUTE = 59;
+    var MINUTE_CHARS = Object.freeze([]);
+    var CronMinute = class extends CronField_1.CronField {
+      static get min() {
+        return MIN_MINUTE;
+      }
+      static get max() {
+        return MAX_MINUTE;
+      }
+      static get chars() {
+        return MINUTE_CHARS;
+      }
+      /**
+       * CronSecond constructor. Initializes the "second" field with the provided values.
+       * @param {SixtyRange[]} values - Values for the "second" field
+       * @param {CronFieldOptions} [options] - Options provided by the parser
+       */
+      constructor(values, options) {
+        super(values, options);
+        this.validate();
+      }
+      /**
+       * Returns an array of allowed values for the "second" field.
+       * @returns {SixtyRange[]}
+       */
+      get values() {
+        return super.values;
+      }
+    };
+    exports.CronMinute = CronMinute;
+  }
+});
+
 // node_modules/.pnpm/luxon@3.7.2/node_modules/luxon/build/node/luxon.js
 var require_luxon = __commonJS({
   "node_modules/.pnpm/luxon@3.7.2/node_modules/luxon/build/node/luxon.js"(exports) {
@@ -26554,8 +26954,8 @@ var require_luxon = __commonJS({
       }
     };
     function explainFromTokens(locale, input, format) {
-      const parser3 = new TokenParser(locale, format);
-      return parser3.explainFromTokens(input);
+      const parser = new TokenParser(locale, format);
+      return parser.explainFromTokens(input);
     }
     function parseFromTokens(locale, input, format) {
       const {
@@ -28747,1018 +29147,2007 @@ var require_luxon = __commonJS({
   }
 });
 
-// node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/date.js
-var require_date = __commonJS({
-  "node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/date.js"(exports, module) {
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronDate.js
+var require_CronDate = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronDate.js"(exports) {
     "use strict";
-    var luxon = require_luxon();
-    CronDate.prototype.addYear = function() {
-      this._date = this._date.plus({ years: 1 });
-    };
-    CronDate.prototype.addMonth = function() {
-      this._date = this._date.plus({ months: 1 }).startOf("month");
-    };
-    CronDate.prototype.addDay = function() {
-      this._date = this._date.plus({ days: 1 }).startOf("day");
-    };
-    CronDate.prototype.addHour = function() {
-      var prev = this._date;
-      this._date = this._date.plus({ hours: 1 }).startOf("hour");
-      if (this._date <= prev) {
-        this._date = this._date.plus({ hours: 1 });
-      }
-    };
-    CronDate.prototype.addMinute = function() {
-      var prev = this._date;
-      this._date = this._date.plus({ minutes: 1 }).startOf("minute");
-      if (this._date < prev) {
-        this._date = this._date.plus({ hours: 1 });
-      }
-    };
-    CronDate.prototype.addSecond = function() {
-      var prev = this._date;
-      this._date = this._date.plus({ seconds: 1 }).startOf("second");
-      if (this._date < prev) {
-        this._date = this._date.plus({ hours: 1 });
-      }
-    };
-    CronDate.prototype.subtractYear = function() {
-      this._date = this._date.minus({ years: 1 });
-    };
-    CronDate.prototype.subtractMonth = function() {
-      this._date = this._date.minus({ months: 1 }).endOf("month").startOf("second");
-    };
-    CronDate.prototype.subtractDay = function() {
-      this._date = this._date.minus({ days: 1 }).endOf("day").startOf("second");
-    };
-    CronDate.prototype.subtractHour = function() {
-      var prev = this._date;
-      this._date = this._date.minus({ hours: 1 }).endOf("hour").startOf("second");
-      if (this._date >= prev) {
-        this._date = this._date.minus({ hours: 1 });
-      }
-    };
-    CronDate.prototype.subtractMinute = function() {
-      var prev = this._date;
-      this._date = this._date.minus({ minutes: 1 }).endOf("minute").startOf("second");
-      if (this._date > prev) {
-        this._date = this._date.minus({ hours: 1 });
-      }
-    };
-    CronDate.prototype.subtractSecond = function() {
-      var prev = this._date;
-      this._date = this._date.minus({ seconds: 1 }).startOf("second");
-      if (this._date > prev) {
-        this._date = this._date.minus({ hours: 1 });
-      }
-    };
-    CronDate.prototype.getDate = function() {
-      return this._date.day;
-    };
-    CronDate.prototype.getFullYear = function() {
-      return this._date.year;
-    };
-    CronDate.prototype.getDay = function() {
-      var weekday = this._date.weekday;
-      return weekday == 7 ? 0 : weekday;
-    };
-    CronDate.prototype.getMonth = function() {
-      return this._date.month - 1;
-    };
-    CronDate.prototype.getHours = function() {
-      return this._date.hour;
-    };
-    CronDate.prototype.getMinutes = function() {
-      return this._date.minute;
-    };
-    CronDate.prototype.getSeconds = function() {
-      return this._date.second;
-    };
-    CronDate.prototype.getMilliseconds = function() {
-      return this._date.millisecond;
-    };
-    CronDate.prototype.getTime = function() {
-      return this._date.valueOf();
-    };
-    CronDate.prototype.getUTCDate = function() {
-      return this._getUTC().day;
-    };
-    CronDate.prototype.getUTCFullYear = function() {
-      return this._getUTC().year;
-    };
-    CronDate.prototype.getUTCDay = function() {
-      var weekday = this._getUTC().weekday;
-      return weekday == 7 ? 0 : weekday;
-    };
-    CronDate.prototype.getUTCMonth = function() {
-      return this._getUTC().month - 1;
-    };
-    CronDate.prototype.getUTCHours = function() {
-      return this._getUTC().hour;
-    };
-    CronDate.prototype.getUTCMinutes = function() {
-      return this._getUTC().minute;
-    };
-    CronDate.prototype.getUTCSeconds = function() {
-      return this._getUTC().second;
-    };
-    CronDate.prototype.toISOString = function() {
-      return this._date.toUTC().toISO();
-    };
-    CronDate.prototype.toJSON = function() {
-      return this._date.toJSON();
-    };
-    CronDate.prototype.setDate = function(d) {
-      this._date = this._date.set({ day: d });
-    };
-    CronDate.prototype.setFullYear = function(y) {
-      this._date = this._date.set({ year: y });
-    };
-    CronDate.prototype.setDay = function(d) {
-      this._date = this._date.set({ weekday: d });
-    };
-    CronDate.prototype.setMonth = function(m) {
-      this._date = this._date.set({ month: m + 1 });
-    };
-    CronDate.prototype.setHours = function(h) {
-      this._date = this._date.set({ hour: h });
-    };
-    CronDate.prototype.setMinutes = function(m) {
-      this._date = this._date.set({ minute: m });
-    };
-    CronDate.prototype.setSeconds = function(s) {
-      this._date = this._date.set({ second: s });
-    };
-    CronDate.prototype.setMilliseconds = function(s) {
-      this._date = this._date.set({ millisecond: s });
-    };
-    CronDate.prototype._getUTC = function() {
-      return this._date.toUTC();
-    };
-    CronDate.prototype.toString = function() {
-      return this.toDate().toString();
-    };
-    CronDate.prototype.toDate = function() {
-      return this._date.toJSDate();
-    };
-    CronDate.prototype.isLastDayOfMonth = function() {
-      var newDate = this._date.plus({ days: 1 }).startOf("day");
-      return this._date.month !== newDate.month;
-    };
-    CronDate.prototype.isLastWeekdayOfMonth = function() {
-      var newDate = this._date.plus({ days: 7 }).startOf("day");
-      return this._date.month !== newDate.month;
-    };
-    function CronDate(timestamp, tz) {
-      var dateOpts = { zone: tz };
-      if (!timestamp) {
-        this._date = luxon.DateTime.local();
-      } else if (timestamp instanceof CronDate) {
-        this._date = timestamp._date;
-      } else if (timestamp instanceof Date) {
-        this._date = luxon.DateTime.fromJSDate(timestamp, dateOpts);
-      } else if (typeof timestamp === "number") {
-        this._date = luxon.DateTime.fromMillis(timestamp, dateOpts);
-      } else if (typeof timestamp === "string") {
-        this._date = luxon.DateTime.fromISO(timestamp, dateOpts);
-        this._date.isValid || (this._date = luxon.DateTime.fromRFC2822(timestamp, dateOpts));
-        this._date.isValid || (this._date = luxon.DateTime.fromSQL(timestamp, dateOpts));
-        this._date.isValid || (this._date = luxon.DateTime.fromFormat(timestamp, "EEE, d MMM yyyy HH:mm:ss", dateOpts));
-      }
-      if (!this._date || !this._date.isValid) {
-        throw new Error("CronDate: unhandled timestamp: " + JSON.stringify(timestamp));
-      }
-      if (tz && tz !== this._date.zoneName) {
-        this._date = this._date.setZone(tz);
-      }
-    }
-    module.exports = CronDate;
-  }
-});
-
-// node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/field_compactor.js
-var require_field_compactor = __commonJS({
-  "node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/field_compactor.js"(exports, module) {
-    "use strict";
-    function buildRange(item) {
-      return {
-        start: item,
-        count: 1
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronDate = exports.DAYS_IN_MONTH = exports.DateMathOp = exports.TimeUnit = void 0;
+    var luxon_1 = require_luxon();
+    var TimeUnit;
+    (function(TimeUnit2) {
+      TimeUnit2["Second"] = "Second";
+      TimeUnit2["Minute"] = "Minute";
+      TimeUnit2["Hour"] = "Hour";
+      TimeUnit2["Day"] = "Day";
+      TimeUnit2["Month"] = "Month";
+      TimeUnit2["Year"] = "Year";
+    })(TimeUnit || (exports.TimeUnit = TimeUnit = {}));
+    var DateMathOp;
+    (function(DateMathOp2) {
+      DateMathOp2["Add"] = "Add";
+      DateMathOp2["Subtract"] = "Subtract";
+    })(DateMathOp || (exports.DateMathOp = DateMathOp = {}));
+    exports.DAYS_IN_MONTH = Object.freeze([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]);
+    var CronDate = class _CronDate {
+      #date;
+      #dstStart = null;
+      #dstEnd = null;
+      /**
+       * Maps the verb to the appropriate method
+       */
+      #verbMap = {
+        add: {
+          [TimeUnit.Year]: this.addYear.bind(this),
+          [TimeUnit.Month]: this.addMonth.bind(this),
+          [TimeUnit.Day]: this.addDay.bind(this),
+          [TimeUnit.Hour]: this.addHour.bind(this),
+          [TimeUnit.Minute]: this.addMinute.bind(this),
+          [TimeUnit.Second]: this.addSecond.bind(this)
+        },
+        subtract: {
+          [TimeUnit.Year]: this.subtractYear.bind(this),
+          [TimeUnit.Month]: this.subtractMonth.bind(this),
+          [TimeUnit.Day]: this.subtractDay.bind(this),
+          [TimeUnit.Hour]: this.subtractHour.bind(this),
+          [TimeUnit.Minute]: this.subtractMinute.bind(this),
+          [TimeUnit.Second]: this.subtractSecond.bind(this)
+        }
       };
-    }
-    function completeRangeWithItem(range, item) {
-      range.end = item;
-      range.step = item - range.start;
-      range.count = 2;
-    }
-    function finalizeCurrentRange(results, currentRange, currentItemRange) {
-      if (currentRange) {
-        if (currentRange.count === 2) {
-          results.push(buildRange(currentRange.start));
-          results.push(buildRange(currentRange.end));
+      /**
+       * Constructs a new CronDate instance.
+       * @param {CronDate | Date | number | string} [timestamp] - The timestamp to initialize the CronDate with.
+       * @param {string} [tz] - The timezone to use for the CronDate.
+       */
+      constructor(timestamp, tz) {
+        const dateOpts = { zone: tz };
+        if (!timestamp) {
+          this.#date = luxon_1.DateTime.local();
+        } else if (timestamp instanceof _CronDate) {
+          this.#date = timestamp.#date;
+          this.#dstStart = timestamp.#dstStart;
+          this.#dstEnd = timestamp.#dstEnd;
+        } else if (timestamp instanceof Date) {
+          this.#date = luxon_1.DateTime.fromJSDate(timestamp, dateOpts);
+        } else if (typeof timestamp === "number") {
+          this.#date = luxon_1.DateTime.fromMillis(timestamp, dateOpts);
         } else {
-          results.push(currentRange);
+          this.#date = luxon_1.DateTime.fromISO(timestamp, dateOpts);
+          this.#date.isValid || (this.#date = luxon_1.DateTime.fromRFC2822(timestamp, dateOpts));
+          this.#date.isValid || (this.#date = luxon_1.DateTime.fromSQL(timestamp, dateOpts));
+          this.#date.isValid || (this.#date = luxon_1.DateTime.fromFormat(timestamp, "EEE, d MMM yyyy HH:mm:ss", dateOpts));
+        }
+        if (!this.#date.isValid) {
+          throw new Error(`CronDate: unhandled timestamp: ${timestamp}`);
+        }
+        if (tz && tz !== this.#date.zoneName) {
+          this.#date = this.#date.setZone(tz);
         }
       }
-      if (currentItemRange) {
-        results.push(currentItemRange);
+      /**
+       * Determines if the given year is a leap year.
+       * @param {number} year - The year to check
+       * @returns {boolean} - True if the year is a leap year, false otherwise
+       * @private
+       */
+      static #isLeapYear(year) {
+        return year % 4 === 0 && year % 100 !== 0 || year % 400 === 0;
       }
-    }
-    function compactField(arr) {
-      var results = [];
-      var currentRange = void 0;
-      for (var i = 0; i < arr.length; i++) {
-        var currentItem = arr[i];
-        if (typeof currentItem !== "number") {
-          finalizeCurrentRange(results, currentRange, buildRange(currentItem));
-          currentRange = void 0;
-        } else if (!currentRange) {
-          currentRange = buildRange(currentItem);
-        } else if (currentRange.count === 1) {
-          completeRangeWithItem(currentRange, currentItem);
-        } else {
-          if (currentRange.step === currentItem - currentRange.end) {
-            currentRange.count++;
-            currentRange.end = currentItem;
-          } else if (currentRange.count === 2) {
-            results.push(buildRange(currentRange.start));
-            currentRange = buildRange(currentRange.end);
-            completeRangeWithItem(currentRange, currentItem);
-          } else {
-            finalizeCurrentRange(results, currentRange);
-            currentRange = buildRange(currentItem);
-          }
-        }
+      /**
+       * Returns daylight savings start time.
+       * @returns {number | null}
+       */
+      get dstStart() {
+        return this.#dstStart;
       }
-      finalizeCurrentRange(results, currentRange);
-      return results;
-    }
-    module.exports = compactField;
-  }
-});
-
-// node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/field_stringify.js
-var require_field_stringify = __commonJS({
-  "node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/field_stringify.js"(exports, module) {
-    "use strict";
-    var compactField = require_field_compactor();
-    function stringifyField(arr, min, max) {
-      var ranges = compactField(arr);
-      if (ranges.length === 1) {
-        var singleRange = ranges[0];
-        var step = singleRange.step;
-        if (step === 1 && singleRange.start === min && singleRange.end === max) {
-          return "*";
-        }
-        if (step !== 1 && singleRange.start === min && singleRange.end === max - step + 1) {
-          return "*/" + step;
-        }
+      /**
+       * Sets daylight savings start time.
+       * @param {number | null} value
+       */
+      set dstStart(value) {
+        this.#dstStart = value;
       }
-      var result = [];
-      for (var i = 0, l = ranges.length; i < l; ++i) {
-        var range = ranges[i];
-        if (range.count === 1) {
-          result.push(range.start);
-          continue;
-        }
-        var step = range.step;
-        if (range.step === 1) {
-          result.push(range.start + "-" + range.end);
-          continue;
-        }
-        var multiplier = range.start == 0 ? range.count - 1 : range.count;
-        if (range.step * multiplier > range.end) {
-          result = result.concat(
-            Array.from({ length: range.end - range.start + 1 }).map(function(_, index) {
-              var value = range.start + index;
-              if ((value - range.start) % range.step === 0) {
-                return value;
-              }
-              return null;
-            }).filter(function(value) {
-              return value != null;
-            })
-          );
-        } else if (range.end === max - range.step + 1) {
-          result.push(range.start + "/" + range.step);
-        } else {
-          result.push(range.start + "-" + range.end + "/" + range.step);
-        }
+      /**
+       * Returns daylight savings end time.
+       * @returns {number | null}
+       */
+      get dstEnd() {
+        return this.#dstEnd;
       }
-      return result.join(",");
-    }
-    module.exports = stringifyField;
-  }
-});
-
-// node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/expression.js
-var require_expression = __commonJS({
-  "node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/expression.js"(exports, module) {
-    "use strict";
-    var CronDate = require_date();
-    var stringifyField = require_field_stringify();
-    var LOOP_LIMIT = 1e4;
-    function CronExpression(fields, options) {
-      this._options = options;
-      this._utc = options.utc || false;
-      this._tz = this._utc ? "UTC" : options.tz;
-      this._currentDate = new CronDate(options.currentDate, this._tz);
-      this._startDate = options.startDate ? new CronDate(options.startDate, this._tz) : null;
-      this._endDate = options.endDate ? new CronDate(options.endDate, this._tz) : null;
-      this._isIterator = options.iterator || false;
-      this._hasIterated = false;
-      this._nthDayOfWeek = options.nthDayOfWeek || 0;
-      this.fields = CronExpression._freezeFields(fields);
-    }
-    CronExpression.map = ["second", "minute", "hour", "dayOfMonth", "month", "dayOfWeek"];
-    CronExpression.predefined = {
-      "@yearly": "0 0 1 1 *",
-      "@monthly": "0 0 1 * *",
-      "@weekly": "0 0 * * 0",
-      "@daily": "0 0 * * *",
-      "@hourly": "0 * * * *"
-    };
-    CronExpression.constraints = [
-      { min: 0, max: 59, chars: [] },
-      // Second
-      { min: 0, max: 59, chars: [] },
-      // Minute
-      { min: 0, max: 23, chars: [] },
-      // Hour
-      { min: 1, max: 31, chars: ["L"] },
-      // Day of month
-      { min: 1, max: 12, chars: [] },
-      // Month
-      { min: 0, max: 7, chars: ["L"] }
-      // Day of week
-    ];
-    CronExpression.daysInMonth = [
-      31,
-      29,
-      31,
-      30,
-      31,
-      30,
-      31,
-      31,
-      30,
-      31,
-      30,
-      31
-    ];
-    CronExpression.aliases = {
-      month: {
-        jan: 1,
-        feb: 2,
-        mar: 3,
-        apr: 4,
-        may: 5,
-        jun: 6,
-        jul: 7,
-        aug: 8,
-        sep: 9,
-        oct: 10,
-        nov: 11,
-        dec: 12
-      },
-      dayOfWeek: {
-        sun: 0,
-        mon: 1,
-        tue: 2,
-        wed: 3,
-        thu: 4,
-        fri: 5,
-        sat: 6
+      /**
+       * Sets daylight savings end time.
+       * @param {number | null} value
+       */
+      set dstEnd(value) {
+        this.#dstEnd = value;
       }
-    };
-    CronExpression.parseDefaults = ["0", "*", "*", "*", "*", "*"];
-    CronExpression.standardValidCharacters = /^[,*\d/-]+$/;
-    CronExpression.dayOfWeekValidCharacters = /^[?,*\dL#/-]+$/;
-    CronExpression.dayOfMonthValidCharacters = /^[?,*\dL/-]+$/;
-    CronExpression.validCharacters = {
-      second: CronExpression.standardValidCharacters,
-      minute: CronExpression.standardValidCharacters,
-      hour: CronExpression.standardValidCharacters,
-      dayOfMonth: CronExpression.dayOfMonthValidCharacters,
-      month: CronExpression.standardValidCharacters,
-      dayOfWeek: CronExpression.dayOfWeekValidCharacters
-    };
-    CronExpression._isValidConstraintChar = function _isValidConstraintChar(constraints, value) {
-      if (typeof value !== "string") {
-        return false;
+      /**
+       * Adds one year to the current CronDate.
+       */
+      addYear() {
+        this.#date = this.#date.plus({ years: 1 });
       }
-      return constraints.chars.some(function(char) {
-        return value.indexOf(char) > -1;
-      });
-    };
-    CronExpression._parseField = function _parseField(field, value, constraints) {
-      switch (field) {
-        case "month":
-        case "dayOfWeek":
-          var aliases = CronExpression.aliases[field];
-          value = value.replace(/[a-z]{3}/gi, function(match) {
-            match = match.toLowerCase();
-            if (typeof aliases[match] !== "undefined") {
-              return aliases[match];
-            } else {
-              throw new Error('Validation error, cannot resolve alias "' + match + '"');
-            }
-          });
-          break;
+      /**
+       * Adds one month to the current CronDate.
+       */
+      addMonth() {
+        this.#date = this.#date.plus({ months: 1 }).startOf("month");
       }
-      if (!CronExpression.validCharacters[field].test(value)) {
-        throw new Error("Invalid characters, got value: " + value);
+      /**
+       * Adds one day to the current CronDate.
+       */
+      addDay() {
+        this.#date = this.#date.plus({ days: 1 }).startOf("day");
       }
-      if (value.indexOf("*") !== -1) {
-        value = value.replace(/\*/g, constraints.min + "-" + constraints.max);
-      } else if (value.indexOf("?") !== -1) {
-        value = value.replace(/\?/g, constraints.min + "-" + constraints.max);
+      /**
+       * Adds one hour to the current CronDate.
+       */
+      addHour() {
+        this.#date = this.#date.plus({ hours: 1 }).startOf("hour");
       }
-      function parseSequence(val) {
-        var stack = [];
-        function handleResult2(result) {
-          if (result instanceof Array) {
-            for (var i2 = 0, c2 = result.length; i2 < c2; i2++) {
-              var value2 = result[i2];
-              if (CronExpression._isValidConstraintChar(constraints, value2)) {
-                stack.push(value2);
-                continue;
-              }
-              if (typeof value2 !== "number" || Number.isNaN(value2) || value2 < constraints.min || value2 > constraints.max) {
-                throw new Error(
-                  "Constraint error, got value " + value2 + " expected range " + constraints.min + "-" + constraints.max
-                );
-              }
-              stack.push(value2);
-            }
-          } else {
-            if (CronExpression._isValidConstraintChar(constraints, result)) {
-              stack.push(result);
-              return;
-            }
-            var numResult = +result;
-            if (Number.isNaN(numResult) || numResult < constraints.min || numResult > constraints.max) {
-              throw new Error(
-                "Constraint error, got value " + result + " expected range " + constraints.min + "-" + constraints.max
-              );
-            }
-            if (field === "dayOfWeek") {
-              numResult = numResult % 7;
-            }
-            stack.push(numResult);
-          }
-        }
-        var atoms = val.split(",");
-        if (!atoms.every(function(atom) {
-          return atom.length > 0;
-        })) {
-          throw new Error("Invalid list value format");
-        }
-        if (atoms.length > 1) {
-          for (var i = 0, c = atoms.length; i < c; i++) {
-            handleResult2(parseRepeat(atoms[i]));
-          }
-        } else {
-          handleResult2(parseRepeat(val));
-        }
-        stack.sort(CronExpression._sortCompareFn);
-        return stack;
+      /**
+       * Adds one minute to the current CronDate.
+       */
+      addMinute() {
+        this.#date = this.#date.plus({ minutes: 1 }).startOf("minute");
       }
-      function parseRepeat(val) {
-        var repeatInterval = 1;
-        var atoms = val.split("/");
-        if (atoms.length > 2) {
-          throw new Error("Invalid repeat: " + val);
-        }
-        if (atoms.length > 1) {
-          if (atoms[0] == +atoms[0]) {
-            atoms = [atoms[0] + "-" + constraints.max, atoms[1]];
-          }
-          return parseRange(atoms[0], atoms[atoms.length - 1]);
-        }
-        return parseRange(val, repeatInterval);
+      /**
+       * Adds one second to the current CronDate.
+       */
+      addSecond() {
+        this.#date = this.#date.plus({ seconds: 1 });
       }
-      function parseRange(val, repeatInterval) {
-        var stack = [];
-        var atoms = val.split("-");
-        if (atoms.length > 1) {
-          if (atoms.length < 2) {
-            return +val;
-          }
-          if (!atoms[0].length) {
-            if (!atoms[1].length) {
-              throw new Error("Invalid range: " + val);
-            }
-            return +val;
-          }
-          var min = +atoms[0];
-          var max = +atoms[1];
-          if (Number.isNaN(min) || Number.isNaN(max) || min < constraints.min || max > constraints.max) {
-            throw new Error(
-              "Constraint error, got range " + min + "-" + max + " expected range " + constraints.min + "-" + constraints.max
-            );
-          } else if (min > max) {
-            throw new Error("Invalid range: " + val);
-          }
-          var repeatIndex = +repeatInterval;
-          if (Number.isNaN(repeatIndex) || repeatIndex <= 0) {
-            throw new Error("Constraint error, cannot repeat at every " + repeatIndex + " time.");
-          }
-          if (field === "dayOfWeek" && max % 7 === 0) {
-            stack.push(0);
-          }
-          for (var index = min, count = max; index <= count; index++) {
-            var exists = stack.indexOf(index) !== -1;
-            if (!exists && repeatIndex > 0 && repeatIndex % repeatInterval === 0) {
-              repeatIndex = 1;
-              stack.push(index);
-            } else {
-              repeatIndex++;
-            }
-          }
-          return stack;
-        }
-        return Number.isNaN(+val) ? val : +val;
+      /**
+       * Subtracts one year from the current CronDate.
+       */
+      subtractYear() {
+        this.#date = this.#date.minus({ years: 1 });
       }
-      return parseSequence(value);
-    };
-    CronExpression._sortCompareFn = function(a, b) {
-      var aIsNumber = typeof a === "number";
-      var bIsNumber = typeof b === "number";
-      if (aIsNumber && bIsNumber) {
-        return a - b;
+      /**
+       * Subtracts one month from the current CronDate.
+       * If the month is 1, it will subtract one year instead.
+       */
+      subtractMonth() {
+        this.#date = this.#date.minus({ months: 1 }).endOf("month").startOf("second");
       }
-      if (!aIsNumber && bIsNumber) {
-        return 1;
+      /**
+       * Subtracts one day from the current CronDate.
+       * If the day is 1, it will subtract one month instead.
+       */
+      subtractDay() {
+        this.#date = this.#date.minus({ days: 1 }).endOf("day").startOf("second");
       }
-      if (aIsNumber && !bIsNumber) {
-        return -1;
+      /**
+       * Subtracts one hour from the current CronDate.
+       * If the hour is 0, it will subtract one day instead.
+       */
+      subtractHour() {
+        this.#date = this.#date.minus({ hours: 1 }).endOf("hour").startOf("second");
       }
-      return a.localeCompare(b);
-    };
-    CronExpression._handleMaxDaysInMonth = function(mappedFields) {
-      if (mappedFields.month.length === 1) {
-        var daysInMonth = CronExpression.daysInMonth[mappedFields.month[0] - 1];
-        if (mappedFields.dayOfMonth[0] > daysInMonth) {
-          throw new Error("Invalid explicit day of month definition");
-        }
-        return mappedFields.dayOfMonth.filter(function(dayOfMonth) {
-          return dayOfMonth === "L" ? true : dayOfMonth <= daysInMonth;
-        }).sort(CronExpression._sortCompareFn);
+      /**
+       * Subtracts one minute from the current CronDate.
+       * If the minute is 0, it will subtract one hour instead.
+       */
+      subtractMinute() {
+        this.#date = this.#date.minus({ minutes: 1 }).endOf("minute").startOf("second");
       }
-    };
-    CronExpression._freezeFields = function(fields) {
-      for (var i = 0, c = CronExpression.map.length; i < c; ++i) {
-        var field = CronExpression.map[i];
-        var value = fields[field];
-        fields[field] = Object.freeze(value);
+      /**
+       * Subtracts one second from the current CronDate.
+       * If the second is 0, it will subtract one minute instead.
+       */
+      subtractSecond() {
+        this.#date = this.#date.minus({ seconds: 1 });
       }
-      return Object.freeze(fields);
-    };
-    CronExpression.prototype._applyTimezoneShift = function(currentDate, dateMathVerb, method) {
-      if (method === "Month" || method === "Day") {
-        var prevTime = currentDate.getTime();
-        currentDate[dateMathVerb + method]();
-        var currTime = currentDate.getTime();
-        if (prevTime === currTime) {
-          if (currentDate.getMinutes() === 0 && currentDate.getSeconds() === 0) {
-            currentDate.addHour();
-          } else if (currentDate.getMinutes() === 59 && currentDate.getSeconds() === 59) {
-            currentDate.subtractHour();
-          }
-        }
-      } else {
-        var previousHour = currentDate.getHours();
-        currentDate[dateMathVerb + method]();
-        var currentHour = currentDate.getHours();
-        var diff = currentHour - previousHour;
-        if (diff === 2) {
-          if (this.fields.hour.length !== 24) {
-            this._dstStart = currentHour;
-          }
-        } else if (diff === 0 && currentDate.getMinutes() === 0 && currentDate.getSeconds() === 0) {
-          if (this.fields.hour.length !== 24) {
-            this._dstEnd = currentHour;
-          }
-        }
+      /**
+       * Adds a unit of time to the current CronDate.
+       * @param {TimeUnit} unit
+       */
+      addUnit(unit) {
+        this.#verbMap.add[unit]();
       }
-    };
-    CronExpression.prototype._findSchedule = function _findSchedule(reverse) {
-      function matchSchedule(value, sequence) {
-        for (var i = 0, c = sequence.length; i < c; i++) {
-          if (sequence[i] >= value) {
-            return sequence[i] === value;
-          }
-        }
-        return sequence[0] === value;
+      /**
+       * Subtracts a unit of time from the current CronDate.
+       * @param {TimeUnit} unit
+       */
+      subtractUnit(unit) {
+        this.#verbMap.subtract[unit]();
       }
-      function isNthDayMatch(date5, nthDayOfWeek) {
-        if (nthDayOfWeek < 6) {
-          if (date5.getDate() < 8 && nthDayOfWeek === 1) {
-            return true;
-          }
-          var offset = date5.getDate() % 7 ? 1 : 0;
-          var adjustedDate = date5.getDate() - date5.getDate() % 7;
-          var occurrence = Math.floor(adjustedDate / 7) + offset;
-          return occurrence === nthDayOfWeek;
-        }
-        return false;
-      }
-      function isLInExpressions(expressions) {
-        return expressions.length > 0 && expressions.some(function(expression) {
-          return typeof expression === "string" && expression.indexOf("L") >= 0;
-        });
-      }
-      reverse = reverse || false;
-      var dateMathVerb = reverse ? "subtract" : "add";
-      var currentDate = new CronDate(this._currentDate, this._tz);
-      var startDate = this._startDate;
-      var endDate = this._endDate;
-      var startTimestamp = currentDate.getTime();
-      var stepCount = 0;
-      function isLastWeekdayOfMonthMatch(expressions) {
-        return expressions.some(function(expression) {
-          if (!isLInExpressions([expression])) {
-            return false;
-          }
-          var weekday = Number.parseInt(expression[0]) % 7;
-          if (Number.isNaN(weekday)) {
-            throw new Error("Invalid last weekday of the month expression: " + expression);
-          }
-          return currentDate.getDay() === weekday && currentDate.isLastWeekdayOfMonth();
-        });
-      }
-      while (stepCount < LOOP_LIMIT) {
-        stepCount++;
-        if (reverse) {
-          if (startDate && currentDate.getTime() - startDate.getTime() < 0) {
-            throw new Error("Out of the timespan range");
-          }
-        } else {
-          if (endDate && endDate.getTime() - currentDate.getTime() < 0) {
-            throw new Error("Out of the timespan range");
-          }
-        }
-        var dayOfMonthMatch = matchSchedule(currentDate.getDate(), this.fields.dayOfMonth);
-        if (isLInExpressions(this.fields.dayOfMonth)) {
-          dayOfMonthMatch = dayOfMonthMatch || currentDate.isLastDayOfMonth();
-        }
-        var dayOfWeekMatch = matchSchedule(currentDate.getDay(), this.fields.dayOfWeek);
-        if (isLInExpressions(this.fields.dayOfWeek)) {
-          dayOfWeekMatch = dayOfWeekMatch || isLastWeekdayOfMonthMatch(this.fields.dayOfWeek);
-        }
-        var isDayOfMonthWildcardMatch = this.fields.dayOfMonth.length >= CronExpression.daysInMonth[currentDate.getMonth()];
-        var isDayOfWeekWildcardMatch = this.fields.dayOfWeek.length === CronExpression.constraints[5].max - CronExpression.constraints[5].min + 1;
-        var currentHour = currentDate.getHours();
-        if (!dayOfMonthMatch && (!dayOfWeekMatch || isDayOfWeekWildcardMatch)) {
-          this._applyTimezoneShift(currentDate, dateMathVerb, "Day");
-          continue;
-        }
-        if (!isDayOfMonthWildcardMatch && isDayOfWeekWildcardMatch && !dayOfMonthMatch) {
-          this._applyTimezoneShift(currentDate, dateMathVerb, "Day");
-          continue;
-        }
-        if (isDayOfMonthWildcardMatch && !isDayOfWeekWildcardMatch && !dayOfWeekMatch) {
-          this._applyTimezoneShift(currentDate, dateMathVerb, "Day");
-          continue;
-        }
-        if (this._nthDayOfWeek > 0 && !isNthDayMatch(currentDate, this._nthDayOfWeek)) {
-          this._applyTimezoneShift(currentDate, dateMathVerb, "Day");
-          continue;
-        }
-        if (!matchSchedule(currentDate.getMonth() + 1, this.fields.month)) {
-          this._applyTimezoneShift(currentDate, dateMathVerb, "Month");
-          continue;
-        }
-        if (!matchSchedule(currentHour, this.fields.hour)) {
-          if (this._dstStart !== currentHour) {
-            this._dstStart = null;
-            this._applyTimezoneShift(currentDate, dateMathVerb, "Hour");
-            continue;
-          } else if (!matchSchedule(currentHour - 1, this.fields.hour)) {
-            currentDate[dateMathVerb + "Hour"]();
-            continue;
-          }
-        } else if (this._dstEnd === currentHour) {
-          if (!reverse) {
-            this._dstEnd = null;
-            this._applyTimezoneShift(currentDate, "add", "Hour");
-            continue;
-          }
-        }
-        if (!matchSchedule(currentDate.getMinutes(), this.fields.minute)) {
-          this._applyTimezoneShift(currentDate, dateMathVerb, "Minute");
-          continue;
-        }
-        if (!matchSchedule(currentDate.getSeconds(), this.fields.second)) {
-          this._applyTimezoneShift(currentDate, dateMathVerb, "Second");
-          continue;
-        }
-        if (startTimestamp === currentDate.getTime()) {
-          if (dateMathVerb === "add" || currentDate.getMilliseconds() === 0) {
-            this._applyTimezoneShift(currentDate, dateMathVerb, "Second");
-          } else {
-            currentDate.setMilliseconds(0);
-          }
-          continue;
-        }
-        break;
-      }
-      if (stepCount >= LOOP_LIMIT) {
-        throw new Error("Invalid expression, loop limit exceeded");
-      }
-      this._currentDate = new CronDate(currentDate, this._tz);
-      this._hasIterated = true;
-      return currentDate;
-    };
-    CronExpression.prototype.next = function next() {
-      var schedule = this._findSchedule();
-      if (this._isIterator) {
-        return {
-          value: schedule,
-          done: !this.hasNext()
-        };
-      }
-      return schedule;
-    };
-    CronExpression.prototype.prev = function prev() {
-      var schedule = this._findSchedule(true);
-      if (this._isIterator) {
-        return {
-          value: schedule,
-          done: !this.hasPrev()
-        };
-      }
-      return schedule;
-    };
-    CronExpression.prototype.hasNext = function() {
-      var current = this._currentDate;
-      var hasIterated = this._hasIterated;
-      try {
-        this._findSchedule();
-        return true;
-      } catch (err) {
-        return false;
-      } finally {
-        this._currentDate = current;
-        this._hasIterated = hasIterated;
-      }
-    };
-    CronExpression.prototype.hasPrev = function() {
-      var current = this._currentDate;
-      var hasIterated = this._hasIterated;
-      try {
-        this._findSchedule(true);
-        return true;
-      } catch (err) {
-        return false;
-      } finally {
-        this._currentDate = current;
-        this._hasIterated = hasIterated;
-      }
-    };
-    CronExpression.prototype.iterate = function iterate(steps, callback) {
-      var dates = [];
-      if (steps >= 0) {
-        for (var i = 0, c = steps; i < c; i++) {
-          try {
-            var item = this.next();
-            dates.push(item);
-            if (callback) {
-              callback(item, i);
-            }
-          } catch (err) {
-            break;
-          }
-        }
-      } else {
-        for (var i = 0, c = steps; i > c; i--) {
-          try {
-            var item = this.prev();
-            dates.push(item);
-            if (callback) {
-              callback(item, i);
-            }
-          } catch (err) {
-            break;
-          }
-        }
-      }
-      return dates;
-    };
-    CronExpression.prototype.reset = function reset(newDate) {
-      this._currentDate = new CronDate(newDate || this._options.currentDate);
-    };
-    CronExpression.prototype.stringify = function stringify(includeSeconds) {
-      var resultArr = [];
-      for (var i = includeSeconds ? 0 : 1, c = CronExpression.map.length; i < c; ++i) {
-        var field = CronExpression.map[i];
-        var value = this.fields[field];
-        var constraint = CronExpression.constraints[i];
-        if (field === "dayOfMonth" && this.fields.month.length === 1) {
-          constraint = { min: 1, max: CronExpression.daysInMonth[this.fields.month[0] - 1] };
-        } else if (field === "dayOfWeek") {
-          constraint = { min: 0, max: 6 };
-          value = value[value.length - 1] === 7 ? value.slice(0, -1) : value;
-        }
-        resultArr.push(stringifyField(value, constraint.min, constraint.max));
-      }
-      return resultArr.join(" ");
-    };
-    CronExpression.parse = function parse3(expression, options) {
-      var self = this;
-      if (typeof options === "function") {
-        options = {};
-      }
-      function parse4(expression2, options2) {
-        if (!options2) {
-          options2 = {};
-        }
-        if (typeof options2.currentDate === "undefined") {
-          options2.currentDate = new CronDate(void 0, self._tz);
-        }
-        if (CronExpression.predefined[expression2]) {
-          expression2 = CronExpression.predefined[expression2];
-        }
-        var fields = [];
-        var atoms = (expression2 + "").trim().split(/\s+/);
-        if (atoms.length > 6) {
-          throw new Error("Invalid cron expression");
-        }
-        var start = CronExpression.map.length - atoms.length;
-        for (var i = 0, c = CronExpression.map.length; i < c; ++i) {
-          var field = CronExpression.map[i];
-          var value = atoms[atoms.length > c ? i : i - start];
-          if (i < start || !value) {
-            fields.push(
-              CronExpression._parseField(
-                field,
-                CronExpression.parseDefaults[i],
-                CronExpression.constraints[i]
-              )
-            );
-          } else {
-            var val = field === "dayOfWeek" ? parseNthDay(value) : value;
-            fields.push(
-              CronExpression._parseField(
-                field,
-                val,
-                CronExpression.constraints[i]
-              )
-            );
-          }
-        }
-        var mappedFields = {};
-        for (var i = 0, c = CronExpression.map.length; i < c; i++) {
-          var key = CronExpression.map[i];
-          mappedFields[key] = fields[i];
-        }
-        var dayOfMonth = CronExpression._handleMaxDaysInMonth(mappedFields);
-        mappedFields.dayOfMonth = dayOfMonth || mappedFields.dayOfMonth;
-        return new CronExpression(mappedFields, options2);
-        function parseNthDay(val2) {
-          var atoms2 = val2.split("#");
-          if (atoms2.length > 1) {
-            var nthValue = +atoms2[atoms2.length - 1];
-            if (/,/.test(val2)) {
-              throw new Error("Constraint error, invalid dayOfWeek `#` and `,` special characters are incompatible");
-            }
-            if (/\//.test(val2)) {
-              throw new Error("Constraint error, invalid dayOfWeek `#` and `/` special characters are incompatible");
-            }
-            if (/-/.test(val2)) {
-              throw new Error("Constraint error, invalid dayOfWeek `#` and `-` special characters are incompatible");
-            }
-            if (atoms2.length > 2 || Number.isNaN(nthValue) || (nthValue < 1 || nthValue > 5)) {
-              throw new Error("Constraint error, invalid dayOfWeek occurrence number (#)");
-            }
-            options2.nthDayOfWeek = nthValue;
-            return atoms2[0];
-          }
-          return val2;
-        }
-      }
-      return parse4(expression, options);
-    };
-    CronExpression.fieldsToExpression = function fieldsToExpression(fields, options) {
-      function validateConstraints(field2, values2, constraints) {
-        if (!values2) {
-          throw new Error("Validation error, Field " + field2 + " is missing");
-        }
-        if (values2.length === 0) {
-          throw new Error("Validation error, Field " + field2 + " contains no values");
-        }
-        for (var i2 = 0, c2 = values2.length; i2 < c2; i2++) {
-          var value = values2[i2];
-          if (CronExpression._isValidConstraintChar(constraints, value)) {
-            continue;
-          }
-          if (typeof value !== "number" || Number.isNaN(value) || value < constraints.min || value > constraints.max) {
-            throw new Error(
-              "Constraint error, got value " + value + " expected range " + constraints.min + "-" + constraints.max
-            );
-          }
-        }
-      }
-      var mappedFields = {};
-      for (var i = 0, c = CronExpression.map.length; i < c; ++i) {
-        var field = CronExpression.map[i];
-        var values = fields[field];
-        validateConstraints(
-          field,
-          values,
-          CronExpression.constraints[i]
-        );
-        var copy = [];
-        var j = -1;
-        while (++j < values.length) {
-          copy[j] = values[j];
-        }
-        values = copy.sort(CronExpression._sortCompareFn).filter(function(item, pos, ary) {
-          return !pos || item !== ary[pos - 1];
-        });
-        if (values.length !== copy.length) {
-          throw new Error("Validation error, Field " + field + " contains duplicate values");
-        }
-        mappedFields[field] = values;
-      }
-      var dayOfMonth = CronExpression._handleMaxDaysInMonth(mappedFields);
-      mappedFields.dayOfMonth = dayOfMonth || mappedFields.dayOfMonth;
-      return new CronExpression(mappedFields, options || {});
-    };
-    module.exports = CronExpression;
-  }
-});
-
-// node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/parser.js
-var require_parser = __commonJS({
-  "node_modules/.pnpm/cron-parser@4.9.0/node_modules/cron-parser/lib/parser.js"(exports, module) {
-    "use strict";
-    var CronExpression = require_expression();
-    function CronParser() {
-    }
-    CronParser._parseEntry = function _parseEntry(entry) {
-      var atoms = entry.split(" ");
-      if (atoms.length === 6) {
-        return {
-          interval: CronExpression.parse(entry)
-        };
-      } else if (atoms.length > 6) {
-        return {
-          interval: CronExpression.parse(
-            atoms.slice(0, 6).join(" ")
-          ),
-          command: atoms.slice(6, atoms.length)
-        };
-      } else {
-        throw new Error("Invalid entry: " + entry);
-      }
-    };
-    CronParser.parseExpression = function parseExpression(expression, options) {
-      return CronExpression.parse(expression, options);
-    };
-    CronParser.fieldsToExpression = function fieldsToExpression(fields, options) {
-      return CronExpression.fieldsToExpression(fields, options);
-    };
-    CronParser.parseString = function parseString(data) {
-      var blocks = data.split("\n");
-      var response = {
-        variables: {},
-        expressions: [],
-        errors: {}
-      };
-      for (var i = 0, c = blocks.length; i < c; i++) {
-        var block = blocks[i];
-        var matches = null;
-        var entry = block.trim();
-        if (entry.length > 0) {
-          if (entry.match(/^#/)) {
-            continue;
-          } else if (matches = entry.match(/^(.*)=(.*)$/)) {
-            response.variables[matches[1]] = matches[2];
-          } else {
-            var result = null;
-            try {
-              result = CronParser._parseEntry("0 " + entry);
-              response.expressions.push(result.interval);
-            } catch (err) {
-              response.errors[entry] = err;
-            }
-          }
-        }
-      }
-      return response;
-    };
-    CronParser.parseFile = function parseFile(filePath, callback) {
-      __require("fs").readFile(filePath, function(err, data) {
-        if (err) {
-          callback(err);
+      /**
+       * Handles a math operation.
+       * @param {DateMathOp} verb - {'add' | 'subtract'}
+       * @param {TimeUnit} unit - {'year' | 'month' | 'day' | 'hour' | 'minute' | 'second'}
+       */
+      invokeDateOperation(verb, unit) {
+        if (verb === DateMathOp.Add) {
+          this.addUnit(unit);
           return;
         }
-        return callback(null, CronParser.parseString(data.toString()));
-      });
+        if (verb === DateMathOp.Subtract) {
+          this.subtractUnit(unit);
+          return;
+        }
+        throw new Error(`Invalid verb: ${verb}`);
+      }
+      /**
+       * Returns the day.
+       * @returns {number}
+       */
+      getDate() {
+        return this.#date.day;
+      }
+      /**
+       * Returns the year.
+       * @returns {number}
+       */
+      getFullYear() {
+        return this.#date.year;
+      }
+      /**
+       * Returns the day of the week.
+       * @returns {number}
+       */
+      getDay() {
+        const weekday = this.#date.weekday;
+        return weekday === 7 ? 0 : weekday;
+      }
+      /**
+       * Returns the month.
+       * @returns {number}
+       */
+      getMonth() {
+        return this.#date.month - 1;
+      }
+      /**
+       * Returns the hour.
+       * @returns {number}
+       */
+      getHours() {
+        return this.#date.hour;
+      }
+      /**
+       * Returns the minutes.
+       * @returns {number}
+       */
+      getMinutes() {
+        return this.#date.minute;
+      }
+      /**
+       * Returns the seconds.
+       * @returns {number}
+       */
+      getSeconds() {
+        return this.#date.second;
+      }
+      /**
+       * Returns the milliseconds.
+       * @returns {number}
+       */
+      getMilliseconds() {
+        return this.#date.millisecond;
+      }
+      /**
+       * Returns the timezone offset from UTC in minutes (e.g. UTC+2 => 120).
+       * Useful for detecting DST transition days.
+       *
+       * @returns {number} UTC offset in minutes
+       */
+      getUTCOffset() {
+        return this.#date.offset;
+      }
+      /**
+       * Sets the time to the start of the day (00:00:00.000) in the current timezone.
+       */
+      setStartOfDay() {
+        this.#date = this.#date.startOf("day");
+      }
+      /**
+       * Sets the time to the end of the day (23:59:59.999) in the current timezone.
+       */
+      setEndOfDay() {
+        this.#date = this.#date.endOf("day");
+      }
+      /**
+       * Returns the time.
+       * @returns {number}
+       */
+      getTime() {
+        return this.#date.valueOf();
+      }
+      /**
+       * Returns the UTC day.
+       * @returns {number}
+       */
+      getUTCDate() {
+        return this.#getUTC().day;
+      }
+      /**
+       * Returns the UTC year.
+       * @returns {number}
+       */
+      getUTCFullYear() {
+        return this.#getUTC().year;
+      }
+      /**
+       * Returns the UTC day of the week.
+       * @returns {number}
+       */
+      getUTCDay() {
+        const weekday = this.#getUTC().weekday;
+        return weekday === 7 ? 0 : weekday;
+      }
+      /**
+       * Returns the UTC month.
+       * @returns {number}
+       */
+      getUTCMonth() {
+        return this.#getUTC().month - 1;
+      }
+      /**
+       * Returns the UTC hour.
+       * @returns {number}
+       */
+      getUTCHours() {
+        return this.#getUTC().hour;
+      }
+      /**
+       * Returns the UTC minutes.
+       * @returns {number}
+       */
+      getUTCMinutes() {
+        return this.#getUTC().minute;
+      }
+      /**
+       * Returns the UTC seconds.
+       * @returns {number}
+       */
+      getUTCSeconds() {
+        return this.#getUTC().second;
+      }
+      /**
+       * Returns the UTC milliseconds.
+       * @returns {string | null}
+       */
+      toISOString() {
+        return this.#date.toUTC().toISO();
+      }
+      /**
+       * Returns the date as a JSON string.
+       * @returns {string | null}
+       */
+      toJSON() {
+        return this.#date.toJSON();
+      }
+      /**
+       * Sets the day.
+       * @param d
+       */
+      setDate(d) {
+        this.#date = this.#date.set({ day: d });
+      }
+      /**
+       * Sets the year.
+       * @param y
+       */
+      setFullYear(y) {
+        this.#date = this.#date.set({ year: y });
+      }
+      /**
+       * Sets the day of the week.
+       * @param d
+       */
+      setDay(d) {
+        this.#date = this.#date.set({ weekday: d });
+      }
+      /**
+       * Sets the month.
+       * @param m
+       */
+      setMonth(m) {
+        this.#date = this.#date.set({ month: m + 1 });
+      }
+      /**
+       * Sets the hour.
+       * @param h
+       */
+      setHours(h) {
+        this.#date = this.#date.set({ hour: h });
+      }
+      /**
+       * Sets the minutes.
+       * @param m
+       */
+      setMinutes(m) {
+        this.#date = this.#date.set({ minute: m });
+      }
+      /**
+       * Sets the seconds.
+       * @param s
+       */
+      setSeconds(s) {
+        this.#date = this.#date.set({ second: s });
+      }
+      /**
+       * Sets the milliseconds.
+       * @param s
+       */
+      setMilliseconds(s) {
+        this.#date = this.#date.set({ millisecond: s });
+      }
+      /**
+       * Returns the date as a string.
+       * @returns {string}
+       */
+      toString() {
+        return this.toDate().toString();
+      }
+      /**
+       * Returns the date as a Date object.
+       * @returns {Date}
+       */
+      toDate() {
+        return this.#date.toJSDate();
+      }
+      /**
+       * Returns true if the day is the last day of the month.
+       * @returns {boolean}
+       */
+      isLastDayOfMonth() {
+        const { day, month } = this.#date;
+        if (month === 2) {
+          const isLeap = _CronDate.#isLeapYear(this.#date.year);
+          return day === exports.DAYS_IN_MONTH[month - 1] - (isLeap ? 0 : 1);
+        }
+        return day === exports.DAYS_IN_MONTH[month - 1];
+      }
+      /**
+       * Returns true if the day is the last weekday of the month.
+       * @returns {boolean}
+       */
+      isLastWeekdayOfMonth() {
+        const { day, month } = this.#date;
+        let lastDay;
+        if (month === 2) {
+          lastDay = exports.DAYS_IN_MONTH[month - 1] - (_CronDate.#isLeapYear(this.#date.year) ? 0 : 1);
+        } else {
+          lastDay = exports.DAYS_IN_MONTH[month - 1];
+        }
+        return day > lastDay - 7;
+      }
+      /**
+       * Primarily for internal use.
+       * @param {DateMathOp} op - The operation to perform.
+       * @param {TimeUnit} unit - The unit of time to use.
+       * @param {number} [hoursLength] - The length of the hours. Required when unit is not month or day.
+       */
+      applyDateOperation(op, unit, hoursLength) {
+        if (unit === TimeUnit.Month || unit === TimeUnit.Day) {
+          this.invokeDateOperation(op, unit);
+          return;
+        }
+        const previousHour = this.getHours();
+        this.invokeDateOperation(op, unit);
+        const currentHour = this.getHours();
+        const diff = currentHour - previousHour;
+        if (diff === 2) {
+          if (hoursLength !== 24) {
+            this.dstStart = currentHour;
+          }
+        } else if (diff === 0 && this.getMinutes() === 0 && this.getSeconds() === 0) {
+          if (hoursLength !== 24) {
+            this.dstEnd = currentHour;
+          }
+        }
+      }
+      /**
+       * Returns the UTC date.
+       * @private
+       * @returns {DateTime}
+       */
+      #getUTC() {
+        return this.#date.toUTC();
+      }
     };
-    module.exports = CronParser;
+    exports.CronDate = CronDate;
+    exports.default = CronDate;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronMonth.js
+var require_CronMonth = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronMonth.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronMonth = void 0;
+    var CronDate_1 = require_CronDate();
+    var CronField_1 = require_CronField();
+    var MIN_MONTH = 1;
+    var MAX_MONTH = 12;
+    var MONTH_CHARS = Object.freeze([]);
+    var CronMonth = class extends CronField_1.CronField {
+      static get min() {
+        return MIN_MONTH;
+      }
+      static get max() {
+        return MAX_MONTH;
+      }
+      static get chars() {
+        return MONTH_CHARS;
+      }
+      static get daysInMonth() {
+        return CronDate_1.DAYS_IN_MONTH;
+      }
+      /**
+       * CronDayOfMonth constructor. Initializes the "day of the month" field with the provided values.
+       * @param {MonthRange[]} values - Values for the "day of the month" field
+       * @param {CronFieldOptions} [options] - Options provided by the parser
+       */
+      constructor(values, options) {
+        super(values, options);
+        this.validate();
+      }
+      /**
+       * Returns an array of allowed values for the "day of the month" field.
+       * @returns {MonthRange[]}
+       */
+      get values() {
+        return super.values;
+      }
+    };
+    exports.CronMonth = CronMonth;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronSecond.js
+var require_CronSecond = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/CronSecond.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronSecond = void 0;
+    var CronField_1 = require_CronField();
+    var MIN_SECOND = 0;
+    var MAX_SECOND = 59;
+    var SECOND_CHARS = Object.freeze([]);
+    var CronSecond = class extends CronField_1.CronField {
+      static get min() {
+        return MIN_SECOND;
+      }
+      static get max() {
+        return MAX_SECOND;
+      }
+      static get chars() {
+        return SECOND_CHARS;
+      }
+      /**
+       * CronSecond constructor. Initializes the "second" field with the provided values.
+       * @param {SixtyRange[]} values - Values for the "second" field
+       * @param {CronFieldOptions} [options] - Options provided by the parser
+       */
+      constructor(values, options) {
+        super(values, options);
+        this.validate();
+      }
+      /**
+       * Returns an array of allowed values for the "second" field.
+       * @returns {SixtyRange[]}
+       */
+      get values() {
+        return super.values;
+      }
+    };
+    exports.CronSecond = CronSecond;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/index.js
+var require_fields = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/fields/index.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p)) __createBinding(exports2, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(require_types2(), exports);
+    __exportStar(require_CronDayOfMonth(), exports);
+    __exportStar(require_CronDayOfWeek(), exports);
+    __exportStar(require_CronField(), exports);
+    __exportStar(require_CronHour(), exports);
+    __exportStar(require_CronMinute(), exports);
+    __exportStar(require_CronMonth(), exports);
+    __exportStar(require_CronSecond(), exports);
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronFieldCollection.js
+var require_CronFieldCollection = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronFieldCollection.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronFieldCollection = void 0;
+    var fields_1 = require_fields();
+    var CronFieldCollection = class _CronFieldCollection {
+      #second;
+      #minute;
+      #hour;
+      #dayOfMonth;
+      #month;
+      #dayOfWeek;
+      /**
+       * Creates a new CronFieldCollection instance by partially overriding fields from an existing one.
+       * @param {CronFieldCollection} base - The base CronFieldCollection to copy fields from
+       * @param {CronFieldOverride} fields - The fields to override, can be CronField instances or raw values
+       * @returns {CronFieldCollection} A new CronFieldCollection instance
+       * @example
+       * const base = new CronFieldCollection({
+       *   second: new CronSecond([0]),
+       *   minute: new CronMinute([0]),
+       *   hour: new CronHour([12]),
+       *   dayOfMonth: new CronDayOfMonth([1]),
+       *   month: new CronMonth([1]),
+       *   dayOfWeek: new CronDayOfWeek([1])
+       * });
+       *
+       * // Using CronField instances
+       * const modified1 = CronFieldCollection.from(base, {
+       *   hour: new CronHour([15]),
+       *   minute: new CronMinute([30])
+       * });
+       *
+       * // Using raw values
+       * const modified2 = CronFieldCollection.from(base, {
+       *   hour: [15],        // Will create new CronHour
+       *   minute: [30]       // Will create new CronMinute
+       * });
+       */
+      static from(base2, fields) {
+        return new _CronFieldCollection({
+          second: this.resolveField(fields_1.CronSecond, base2.second, fields.second),
+          minute: this.resolveField(fields_1.CronMinute, base2.minute, fields.minute),
+          hour: this.resolveField(fields_1.CronHour, base2.hour, fields.hour),
+          dayOfMonth: this.resolveField(fields_1.CronDayOfMonth, base2.dayOfMonth, fields.dayOfMonth),
+          month: this.resolveField(fields_1.CronMonth, base2.month, fields.month),
+          dayOfWeek: this.resolveField(fields_1.CronDayOfWeek, base2.dayOfWeek, fields.dayOfWeek)
+        });
+      }
+      /**
+       * Resolves a field value, either using the provided CronField instance or creating a new one from raw values.
+       * @param constructor - The constructor for creating new field instances
+       * @param baseField - The base field to use if no override is provided
+       * @param fieldValue - The override value, either a CronField instance or raw values
+       * @returns The resolved CronField instance
+       * @private
+       */
+      static resolveField(constructor, baseField, fieldValue) {
+        if (!fieldValue) {
+          return baseField;
+        }
+        if (fieldValue instanceof fields_1.CronField) {
+          return fieldValue;
+        }
+        return new constructor(fieldValue);
+      }
+      /**
+       * CronFieldCollection constructor. Initializes the cron fields with the provided values.
+       * @param {CronFields} param0 - The cron fields values
+       * @throws {Error} if validation fails
+       * @example
+       * const cronFields = new CronFieldCollection({
+       *   second: new CronSecond([0]),
+       *   minute: new CronMinute([0, 30]),
+       *   hour: new CronHour([9]),
+       *   dayOfMonth: new CronDayOfMonth([15]),
+       *   month: new CronMonth([1]),
+       *   dayOfWeek: new CronDayOfTheWeek([1, 2, 3, 4, 5]),
+       * })
+       *
+       * console.log(cronFields.second.values); // [0]
+       * console.log(cronFields.minute.values); // [0, 30]
+       * console.log(cronFields.hour.values); // [9]
+       * console.log(cronFields.dayOfMonth.values); // [15]
+       * console.log(cronFields.month.values); // [1]
+       * console.log(cronFields.dayOfWeek.values); // [1, 2, 3, 4, 5]
+       */
+      constructor({ second, minute, hour, dayOfMonth, month, dayOfWeek }) {
+        if (!second) {
+          throw new Error("Validation error, Field second is missing");
+        }
+        if (!minute) {
+          throw new Error("Validation error, Field minute is missing");
+        }
+        if (!hour) {
+          throw new Error("Validation error, Field hour is missing");
+        }
+        if (!dayOfMonth) {
+          throw new Error("Validation error, Field dayOfMonth is missing");
+        }
+        if (!month) {
+          throw new Error("Validation error, Field month is missing");
+        }
+        if (!dayOfWeek) {
+          throw new Error("Validation error, Field dayOfWeek is missing");
+        }
+        if (month.values.length === 1 && !dayOfMonth.hasLastChar) {
+          if (!(parseInt(dayOfMonth.values[0], 10) <= fields_1.CronMonth.daysInMonth[month.values[0] - 1])) {
+            throw new Error("Invalid explicit day of month definition");
+          }
+        }
+        this.#second = second;
+        this.#minute = minute;
+        this.#hour = hour;
+        this.#month = month;
+        this.#dayOfWeek = dayOfWeek;
+        this.#dayOfMonth = dayOfMonth;
+      }
+      /**
+       * Returns the second field.
+       * @returns {CronSecond}
+       */
+      get second() {
+        return this.#second;
+      }
+      /**
+       * Returns the minute field.
+       * @returns {CronMinute}
+       */
+      get minute() {
+        return this.#minute;
+      }
+      /**
+       * Returns the hour field.
+       * @returns {CronHour}
+       */
+      get hour() {
+        return this.#hour;
+      }
+      /**
+       * Returns the day of the month field.
+       * @returns {CronDayOfMonth}
+       */
+      get dayOfMonth() {
+        return this.#dayOfMonth;
+      }
+      /**
+       * Returns the month field.
+       * @returns {CronMonth}
+       */
+      get month() {
+        return this.#month;
+      }
+      /**
+       * Returns the day of the week field.
+       * @returns {CronDayOfWeek}
+       */
+      get dayOfWeek() {
+        return this.#dayOfWeek;
+      }
+      /**
+       * Returns a string representation of the cron fields.
+       * @param {(number | CronChars)[]} input - The cron fields values
+       * @static
+       * @returns {FieldRange[]} - The compacted cron fields
+       */
+      static compactField(input) {
+        if (input.length === 0) {
+          return [];
+        }
+        const output = [];
+        let current = void 0;
+        input.forEach((item, i, arr) => {
+          if (current === void 0) {
+            current = { start: item, count: 1 };
+            return;
+          }
+          const prevItem = arr[i - 1] || current.start;
+          const nextItem = arr[i + 1];
+          if (item === "L" || item === "W") {
+            output.push(current);
+            output.push({ start: item, count: 1 });
+            current = void 0;
+            return;
+          }
+          if (current.step === void 0 && nextItem !== void 0) {
+            const step = item - prevItem;
+            const nextStep = nextItem - item;
+            if (step <= nextStep) {
+              current = { ...current, count: 2, end: item, step };
+              return;
+            }
+            current.step = 1;
+          }
+          if (item - (current.end ?? 0) === current.step) {
+            current.count++;
+            current.end = item;
+          } else {
+            if (current.count === 1) {
+              output.push({ start: current.start, count: 1 });
+            } else if (current.count === 2) {
+              output.push({ start: current.start, count: 1 });
+              output.push({
+                start: current.end ?? /* istanbul ignore next - see above */
+                prevItem,
+                count: 1
+              });
+            } else {
+              output.push(current);
+            }
+            current = { start: item, count: 1 };
+          }
+        });
+        if (current) {
+          output.push(current);
+        }
+        return output;
+      }
+      /**
+       * Handles a single range.
+       * @param {CronField} field - The cron field to stringify
+       * @param {FieldRange} range {start: number, end: number, step: number, count: number} The range to handle.
+       * @param {number} max The maximum value for the field.
+       * @returns {string | null} The stringified range or null if it cannot be stringified.
+       * @private
+       */
+      static #handleSingleRange(field, range, max) {
+        const step = range.step;
+        if (!step) {
+          return null;
+        }
+        if (step === 1 && range.start === field.min && range.end && range.end >= max) {
+          return field.hasQuestionMarkChar ? "?" : "*";
+        }
+        if (step !== 1 && range.start === field.min && range.end && range.end >= max - step + 1) {
+          return `*/${step}`;
+        }
+        return null;
+      }
+      /**
+       * Handles multiple ranges.
+       * @param {FieldRange} range {start: number, end: number, step: number, count: number} The range to handle.
+       * @param {number} max The maximum value for the field.
+       * @returns {string} The stringified range.
+       * @private
+       */
+      static #handleMultipleRanges(range, max) {
+        const step = range.step;
+        if (step === 1) {
+          return `${range.start}-${range.end}`;
+        }
+        const multiplier = range.start === 0 ? range.count - 1 : range.count;
+        if (!step) {
+          throw new Error("Unexpected range step");
+        }
+        if (!range.end) {
+          throw new Error("Unexpected range end");
+        }
+        if (step * multiplier > range.end) {
+          const mapFn = (_, index) => {
+            if (typeof range.start !== "number") {
+              throw new Error("Unexpected range start");
+            }
+            return index % step === 0 ? range.start + index : null;
+          };
+          if (typeof range.start !== "number") {
+            throw new Error("Unexpected range start");
+          }
+          const seed = { length: range.end - range.start + 1 };
+          return Array.from(seed, mapFn).filter((value) => value !== null).join(",");
+        }
+        return range.end === max - step + 1 ? `${range.start}/${step}` : `${range.start}-${range.end}/${step}`;
+      }
+      /**
+       * Returns a string representation of the cron fields.
+       * @param {CronField} field - The cron field to stringify
+       * @static
+       * @returns {string} - The stringified cron field
+       */
+      stringifyField(field) {
+        let max = field.max;
+        let values = field.values;
+        if (field instanceof fields_1.CronDayOfWeek) {
+          max = 6;
+          const dayOfWeek = this.#dayOfWeek.values;
+          values = dayOfWeek[dayOfWeek.length - 1] === 7 ? dayOfWeek.slice(0, -1) : dayOfWeek;
+        }
+        if (field instanceof fields_1.CronDayOfMonth) {
+          max = this.#month.values.length === 1 ? fields_1.CronMonth.daysInMonth[this.#month.values[0] - 1] : field.max;
+        }
+        const ranges = _CronFieldCollection.compactField(values);
+        if (ranges.length === 1) {
+          const singleRangeResult = _CronFieldCollection.#handleSingleRange(field, ranges[0], max);
+          if (singleRangeResult) {
+            return singleRangeResult;
+          }
+        }
+        return ranges.map((range) => {
+          const value = range.count === 1 ? range.start.toString() : _CronFieldCollection.#handleMultipleRanges(range, max);
+          if (field instanceof fields_1.CronDayOfWeek && field.nthDay > 0) {
+            return `${value}#${field.nthDay}`;
+          }
+          return value;
+        }).join(",");
+      }
+      /**
+       * Returns a string representation of the cron field values.
+       * @param {boolean} includeSeconds - Whether to include seconds in the output
+       * @returns {string} The formatted cron string
+       */
+      stringify(includeSeconds = false) {
+        const arr = [];
+        if (includeSeconds) {
+          arr.push(this.stringifyField(this.#second));
+        }
+        arr.push(
+          this.stringifyField(this.#minute),
+          // minute
+          this.stringifyField(this.#hour),
+          // hour
+          this.stringifyField(this.#dayOfMonth),
+          // dayOfMonth
+          this.stringifyField(this.#month),
+          // month
+          this.stringifyField(this.#dayOfWeek)
+        );
+        return arr.join(" ");
+      }
+      /**
+       * Returns a serialized representation of the cron fields values.
+       * @returns {SerializedCronFields} An object containing the cron field values
+       */
+      serialize() {
+        return {
+          second: this.#second.serialize(),
+          minute: this.#minute.serialize(),
+          hour: this.#hour.serialize(),
+          dayOfMonth: this.#dayOfMonth.serialize(),
+          month: this.#month.serialize(),
+          dayOfWeek: this.#dayOfWeek.serialize()
+        };
+      }
+    };
+    exports.CronFieldCollection = CronFieldCollection;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronExpression.js
+var require_CronExpression = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronExpression.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronExpression = exports.LOOPS_LIMIT_EXCEEDED_ERROR_MESSAGE = exports.TIME_SPAN_OUT_OF_BOUNDS_ERROR_MESSAGE = void 0;
+    var CronDate_1 = require_CronDate();
+    exports.TIME_SPAN_OUT_OF_BOUNDS_ERROR_MESSAGE = "Out of the time span range";
+    exports.LOOPS_LIMIT_EXCEEDED_ERROR_MESSAGE = "Invalid expression, loop limit exceeded";
+    var LOOP_LIMIT = 1e4;
+    var CronExpression = class _CronExpression {
+      #options;
+      #tz;
+      #currentDate;
+      #startDate;
+      #endDate;
+      #fields;
+      #dstTransitionDayKey = null;
+      #isDstTransitionDay = false;
+      /**
+       * Creates a new CronExpression instance.
+       *
+       * @param {CronFieldCollection} fields - Cron fields.
+       * @param {CronExpressionOptions} options - Parser options.
+       */
+      constructor(fields, options) {
+        this.#options = options;
+        this.#tz = options.tz;
+        this.#startDate = options.startDate ? new CronDate_1.CronDate(options.startDate, this.#tz) : null;
+        this.#endDate = options.endDate ? new CronDate_1.CronDate(options.endDate, this.#tz) : null;
+        let currentDateValue = options.currentDate ?? options.startDate;
+        if (currentDateValue) {
+          const tempCurrentDate = new CronDate_1.CronDate(currentDateValue, this.#tz);
+          if (this.#startDate && tempCurrentDate.getTime() < this.#startDate.getTime()) {
+            currentDateValue = this.#startDate;
+          } else if (this.#endDate && tempCurrentDate.getTime() > this.#endDate.getTime()) {
+            currentDateValue = this.#endDate;
+          }
+        }
+        this.#currentDate = new CronDate_1.CronDate(currentDateValue, this.#tz);
+        this.#fields = fields;
+      }
+      /**
+       * Getter for the cron fields.
+       *
+       * @returns {CronFieldCollection} Cron fields.
+       */
+      get fields() {
+        return this.#fields;
+      }
+      /**
+       * Converts cron fields back to a CronExpression instance.
+       *
+       * @public
+       * @param {Record<string, number[]>} fields - The input cron fields object.
+       * @param {CronExpressionOptions} [options] - Optional parsing options.
+       * @returns {CronExpression} - A new CronExpression instance.
+       */
+      static fieldsToExpression(fields, options) {
+        return new _CronExpression(fields, options || {});
+      }
+      /**
+       * Checks if the given value matches any element in the sequence.
+       *
+       * @param {number} value - The value to be matched.
+       * @param {number[]} sequence - The sequence to be checked against.
+       * @returns {boolean} - True if the value matches an element in the sequence; otherwise, false.
+       * @memberof CronExpression
+       * @private
+       */
+      static #matchSchedule(value, sequence) {
+        return sequence.some((element) => element === value);
+      }
+      /**
+       * Returns the minimum or maximum value from the given array of numbers.
+       *
+       * @param {number[]} values - An array of numbers.
+       * @param {boolean} reverse - If true, returns the maximum value; otherwise, returns the minimum value.
+       * @returns {number} - The minimum or maximum value.
+       */
+      #getMinOrMax(values, reverse) {
+        return values[reverse ? values.length - 1 : 0];
+      }
+      /**
+       * Checks whether the given date falls on a DST transition day in its timezone.
+       *
+       * This is used to disable certain “direct set” fast paths on DST days, because setting the hour
+       * directly may land on a non-existent or repeated local time. We cache the result per calendar day
+       * to keep iteration overhead low.
+       *
+       * @param {CronDate} currentDate - Date to check (in the cron timezone)
+       * @returns {boolean} True when the day has a DST transition
+       * @private
+       */
+      #checkDstTransition(currentDate) {
+        const key = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${currentDate.getDate()}`;
+        if (this.#dstTransitionDayKey === key) {
+          return this.#isDstTransitionDay;
+        }
+        const startOfDay = new CronDate_1.CronDate(currentDate);
+        startOfDay.setStartOfDay();
+        const endOfDay = new CronDate_1.CronDate(currentDate);
+        endOfDay.setEndOfDay();
+        this.#dstTransitionDayKey = key;
+        this.#isDstTransitionDay = startOfDay.getUTCOffset() !== endOfDay.getUTCOffset();
+        return this.#isDstTransitionDay;
+      }
+      /**
+       * Moves the date to the next/previous allowed second value. If there is no remaining allowed second
+       * within the current minute, rolls to the next/previous minute and resets seconds to the min/max allowed.
+       *
+       * @param {CronDate} currentDate - Mutable date being iterated
+       * @param {DateMathOp} dateMathVerb - Add/Subtract depending on direction
+       * @param {boolean} reverse - When true, iterating backwards
+       * @private
+       */
+      #moveToNextSecond(currentDate, dateMathVerb, reverse) {
+        const seconds = this.#fields.second.values;
+        const currentSecond = currentDate.getSeconds();
+        const nextSecond = this.#fields.second.findNearestValue(currentSecond, reverse);
+        if (nextSecond !== null) {
+          currentDate.setSeconds(nextSecond);
+          return;
+        }
+        currentDate.applyDateOperation(dateMathVerb, CronDate_1.TimeUnit.Minute, this.#fields.hour.values.length);
+        currentDate.setSeconds(this.#getMinOrMax(seconds, reverse));
+      }
+      /**
+       * Moves the date to the next/previous allowed minute value and resets seconds to the min/max allowed.
+       * If there is no remaining allowed minute within the current hour, rolls to the next/previous hour and
+       * resets minutes/seconds to their extrema.
+       *
+       * @param {CronDate} currentDate - Mutable date being iterated
+       * @param {DateMathOp} dateMathVerb - Add/Subtract depending on direction
+       * @param {boolean} reverse - When true, iterating backwards
+       * @private
+       */
+      #moveToNextMinute(currentDate, dateMathVerb, reverse) {
+        const minutes = this.#fields.minute.values;
+        const seconds = this.#fields.second.values;
+        const currentMinute = currentDate.getMinutes();
+        const nextMinute = this.#fields.minute.findNearestValue(currentMinute, reverse);
+        if (nextMinute !== null) {
+          currentDate.setMinutes(nextMinute);
+          currentDate.setSeconds(this.#getMinOrMax(seconds, reverse));
+          return;
+        }
+        currentDate.applyDateOperation(dateMathVerb, CronDate_1.TimeUnit.Hour, this.#fields.hour.values.length);
+        currentDate.setMinutes(this.#getMinOrMax(minutes, reverse));
+        currentDate.setSeconds(this.#getMinOrMax(seconds, reverse));
+      }
+      /**
+       * Determines if the current date matches the last specified weekday of the month.
+       *
+       * @param {Array<(number|string)>} expressions - An array of expressions containing weekdays and "L" for the last weekday.
+       * @param {CronDate} currentDate - The current date object.
+       * @returns {boolean} - True if the current date matches the last specified weekday of the month; otherwise, false.
+       * @memberof CronExpression
+       * @private
+       */
+      static #isLastWeekdayOfMonthMatch(expressions, currentDate) {
+        const isLastWeekdayOfMonth = currentDate.isLastWeekdayOfMonth();
+        return expressions.some((expression) => {
+          const weekday = parseInt(expression.toString().charAt(0), 10) % 7;
+          if (Number.isNaN(weekday)) {
+            throw new Error(`Invalid last weekday of the month expression: ${expression}`);
+          }
+          return currentDate.getDay() === weekday && isLastWeekdayOfMonth;
+        });
+      }
+      /**
+       * Find the next scheduled date based on the cron expression.
+       * @returns {CronDate} - The next scheduled date or an ES6 compatible iterator object.
+       * @memberof CronExpression
+       * @public
+       */
+      next() {
+        return this.#findSchedule();
+      }
+      /**
+       * Find the previous scheduled date based on the cron expression.
+       * @returns {CronDate} - The previous scheduled date or an ES6 compatible iterator object.
+       * @memberof CronExpression
+       * @public
+       */
+      prev() {
+        return this.#findSchedule(true);
+      }
+      /**
+       * Check if there is a next scheduled date based on the current date and cron expression.
+       * @returns {boolean} - Returns true if there is a next scheduled date, false otherwise.
+       * @memberof CronExpression
+       * @public
+       */
+      hasNext() {
+        const current = this.#currentDate;
+        try {
+          this.#findSchedule();
+          return true;
+        } catch {
+          return false;
+        } finally {
+          this.#currentDate = current;
+        }
+      }
+      /**
+       * Check if there is a previous scheduled date based on the current date and cron expression.
+       * @returns {boolean} - Returns true if there is a previous scheduled date, false otherwise.
+       * @memberof CronExpression
+       * @public
+       */
+      hasPrev() {
+        const current = this.#currentDate;
+        try {
+          this.#findSchedule(true);
+          return true;
+        } catch {
+          return false;
+        } finally {
+          this.#currentDate = current;
+        }
+      }
+      /**
+       * Iterate over a specified number of steps and optionally execute a callback function for each step.
+       * @param {number} steps - The number of steps to iterate. Positive value iterates forward, negative value iterates backward.
+       * @returns {CronDate[]} - An array of iterator fields or CronDate objects.
+       * @memberof CronExpression
+       * @public
+       */
+      take(limit) {
+        const items = [];
+        if (limit >= 0) {
+          for (let i = 0; i < limit; i++) {
+            try {
+              items.push(this.next());
+            } catch {
+              return items;
+            }
+          }
+        } else {
+          for (let i = 0; i > limit; i--) {
+            try {
+              items.push(this.prev());
+            } catch {
+              return items;
+            }
+          }
+        }
+        return items;
+      }
+      /**
+       * Reset the iterators current date to a new date or the initial date.
+       * @param {Date | CronDate} [newDate] - Optional new date to reset to. If not provided, it will reset to the initial date.
+       * @memberof CronExpression
+       * @public
+       */
+      reset(newDate) {
+        this.#currentDate = new CronDate_1.CronDate(newDate || this.#options.currentDate);
+      }
+      /**
+       * Generate a string representation of the cron expression.
+       * @param {boolean} [includeSeconds=false] - Whether to include the seconds field in the string representation.
+       * @returns {string} - The string representation of the cron expression.
+       * @memberof CronExpression
+       * @public
+       */
+      stringify(includeSeconds = false) {
+        return this.#fields.stringify(includeSeconds);
+      }
+      /**
+       * Check if the cron expression includes the given date
+       * @param {Date|CronDate} date
+       * @returns {boolean}
+       */
+      includesDate(date5) {
+        const { second, minute, hour, month } = this.#fields;
+        const dt = new CronDate_1.CronDate(date5, this.#tz);
+        if (!second.values.includes(dt.getSeconds()) || !minute.values.includes(dt.getMinutes()) || !hour.values.includes(dt.getHours()) || !month.values.includes(dt.getMonth() + 1)) {
+          return false;
+        }
+        if (!this.#matchDayOfMonth(dt)) {
+          return false;
+        }
+        if (this.#fields.dayOfWeek.nthDay > 0) {
+          const weekInMonth = Math.ceil(dt.getDate() / 7);
+          if (weekInMonth !== this.#fields.dayOfWeek.nthDay) {
+            return false;
+          }
+        }
+        return true;
+      }
+      /**
+       * Returns the string representation of the cron expression.
+       * @returns {CronDate} - The next schedule date.
+       */
+      toString() {
+        return this.#options.expression || this.stringify(true);
+      }
+      /**
+       * Determines if the given date matches the cron expression's day of month and day of week fields.
+       *
+       * The function checks the following rules:
+       * Rule 1: If both "day of month" and "day of week" are restricted (not wildcard), then one or both must match the current day.
+       * Rule 2: If "day of month" is restricted and "day of week" is not restricted, then "day of month" must match the current day.
+       * Rule 3: If "day of month" is a wildcard, "day of week" is not a wildcard, and "day of week" matches the current day, then the match is accepted.
+       * If none of the rules match, the match is rejected.
+       *
+       * @param {CronDate} currentDate - The current date to be evaluated against the cron expression.
+       * @returns {boolean} Returns true if the current date matches the cron expression's day of month and day of week fields, otherwise false.
+       * @memberof CronExpression
+       * @private
+       */
+      #matchDayOfMonth(currentDate) {
+        const isDayOfMonthWildcardMatch = this.#fields.dayOfMonth.isWildcard;
+        const isRestrictedDayOfMonth = !isDayOfMonthWildcardMatch;
+        const isDayOfWeekWildcardMatch = this.#fields.dayOfWeek.isWildcard;
+        const isRestrictedDayOfWeek = !isDayOfWeekWildcardMatch;
+        const matchedDOM = _CronExpression.#matchSchedule(currentDate.getDate(), this.#fields.dayOfMonth.values) || this.#fields.dayOfMonth.hasLastChar && currentDate.isLastDayOfMonth();
+        const matchedDOW = _CronExpression.#matchSchedule(currentDate.getDay(), this.#fields.dayOfWeek.values) || this.#fields.dayOfWeek.hasLastChar && _CronExpression.#isLastWeekdayOfMonthMatch(this.#fields.dayOfWeek.values, currentDate);
+        if (isRestrictedDayOfMonth && isRestrictedDayOfWeek && (matchedDOM || matchedDOW)) {
+          return true;
+        }
+        if (matchedDOM && !isRestrictedDayOfWeek) {
+          return true;
+        }
+        if (isDayOfMonthWildcardMatch && !isDayOfWeekWildcardMatch && matchedDOW) {
+          return true;
+        }
+        return false;
+      }
+      /**
+       * Determines if the current hour matches the cron expression.
+       *
+       * @param {CronDate} currentDate - The current date object.
+       * @param {DateMathOp} dateMathVerb - The date math operation enumeration value.
+       * @param {boolean} reverse - A flag indicating whether the matching should be done in reverse order.
+       * @returns {boolean} - True if the current hour matches the cron expression; otherwise, false.
+       */
+      #matchHour(currentDate, dateMathVerb, reverse) {
+        const hourValues = this.#fields.hour.values;
+        const hours = hourValues;
+        const currentHour = currentDate.getHours();
+        const isMatch = _CronExpression.#matchSchedule(currentHour, hourValues);
+        const isDstStart = currentDate.dstStart === currentHour;
+        const isDstEnd = currentDate.dstEnd === currentHour;
+        if (isDstStart) {
+          if (_CronExpression.#matchSchedule(currentHour - 1, hourValues)) {
+            return true;
+          }
+          currentDate.invokeDateOperation(dateMathVerb, CronDate_1.TimeUnit.Hour);
+          return false;
+        }
+        if (isDstEnd && !reverse) {
+          currentDate.dstEnd = null;
+          currentDate.applyDateOperation(CronDate_1.DateMathOp.Add, CronDate_1.TimeUnit.Hour, hours.length);
+          return false;
+        }
+        if (isMatch) {
+          return true;
+        }
+        currentDate.dstStart = null;
+        const nextHour = this.#fields.hour.findNearestValue(currentHour, reverse);
+        if (nextHour === null) {
+          currentDate.applyDateOperation(dateMathVerb, CronDate_1.TimeUnit.Day, hours.length);
+          return false;
+        }
+        if (this.#checkDstTransition(currentDate)) {
+          const steps = reverse ? currentHour - nextHour : nextHour - currentHour;
+          for (let i = 0; i < steps; i++) {
+            currentDate.applyDateOperation(dateMathVerb, CronDate_1.TimeUnit.Hour, hours.length);
+          }
+        } else {
+          currentDate.setHours(nextHour);
+        }
+        currentDate.setMinutes(this.#getMinOrMax(this.#fields.minute.values, reverse));
+        currentDate.setSeconds(this.#getMinOrMax(this.#fields.second.values, reverse));
+        return false;
+      }
+      /**
+       * Validates the current date against the start and end dates of the cron expression.
+       * If the current date is outside the specified time span, an error is thrown.
+       *
+       * @param currentDate {CronDate} - The current date to validate.
+       * @throws {Error} If the current date is outside the specified time span.
+       * @private
+       */
+      #validateTimeSpan(currentDate) {
+        if (!this.#startDate && !this.#endDate) {
+          return;
+        }
+        const currentTime = currentDate.getTime();
+        if (this.#startDate && currentTime < this.#startDate.getTime()) {
+          throw new Error(exports.TIME_SPAN_OUT_OF_BOUNDS_ERROR_MESSAGE);
+        }
+        if (this.#endDate && currentTime > this.#endDate.getTime()) {
+          throw new Error(exports.TIME_SPAN_OUT_OF_BOUNDS_ERROR_MESSAGE);
+        }
+      }
+      /**
+       * Finds the next or previous schedule based on the cron expression.
+       *
+       * @param {boolean} [reverse=false] - If true, finds the previous schedule; otherwise, finds the next schedule.
+       * @returns {CronDate} - The next or previous schedule date.
+       * @private
+       */
+      #findSchedule(reverse = false) {
+        const dateMathVerb = reverse ? CronDate_1.DateMathOp.Subtract : CronDate_1.DateMathOp.Add;
+        const currentDate = new CronDate_1.CronDate(this.#currentDate);
+        const startTimestamp = currentDate.getTime();
+        let stepCount = 0;
+        while (++stepCount < LOOP_LIMIT) {
+          this.#validateTimeSpan(currentDate);
+          if (!this.#matchDayOfMonth(currentDate)) {
+            currentDate.applyDateOperation(dateMathVerb, CronDate_1.TimeUnit.Day, this.#fields.hour.values.length);
+            continue;
+          }
+          if (!(this.#fields.dayOfWeek.nthDay <= 0 || Math.ceil(currentDate.getDate() / 7) === this.#fields.dayOfWeek.nthDay)) {
+            currentDate.applyDateOperation(dateMathVerb, CronDate_1.TimeUnit.Day, this.#fields.hour.values.length);
+            continue;
+          }
+          if (!_CronExpression.#matchSchedule(currentDate.getMonth() + 1, this.#fields.month.values)) {
+            currentDate.applyDateOperation(dateMathVerb, CronDate_1.TimeUnit.Month, this.#fields.hour.values.length);
+            continue;
+          }
+          if (!this.#matchHour(currentDate, dateMathVerb, reverse)) {
+            continue;
+          }
+          if (!_CronExpression.#matchSchedule(currentDate.getMinutes(), this.#fields.minute.values)) {
+            this.#moveToNextMinute(currentDate, dateMathVerb, reverse);
+            continue;
+          }
+          if (!_CronExpression.#matchSchedule(currentDate.getSeconds(), this.#fields.second.values)) {
+            this.#moveToNextSecond(currentDate, dateMathVerb, reverse);
+            continue;
+          }
+          if (startTimestamp === currentDate.getTime()) {
+            if (dateMathVerb === "Add" || currentDate.getMilliseconds() === 0) {
+              currentDate.applyDateOperation(dateMathVerb, CronDate_1.TimeUnit.Second, this.#fields.hour.values.length);
+            }
+            continue;
+          }
+          break;
+        }
+        if (stepCount > LOOP_LIMIT) {
+          throw new Error(exports.LOOPS_LIMIT_EXCEEDED_ERROR_MESSAGE);
+        }
+        if (currentDate.getMilliseconds() !== 0) {
+          currentDate.setMilliseconds(0);
+        }
+        this.#currentDate = currentDate;
+        return currentDate;
+      }
+      /**
+       * Returns an iterator for iterating through future CronDate instances
+       *
+       * @name Symbol.iterator
+       * @memberof CronExpression
+       * @returns {Iterator<CronDate>} An iterator object for CronExpression that returns CronDate values.
+       */
+      [Symbol.iterator]() {
+        return {
+          next: () => {
+            const schedule = this.#findSchedule();
+            return { value: schedule, done: !this.hasNext() };
+          }
+        };
+      }
+    };
+    exports.CronExpression = CronExpression;
+    exports.default = CronExpression;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/utils/random.js
+var require_random = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/utils/random.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.seededRandom = seededRandom;
+    function xfnv1a(str) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return () => h >>> 0;
+    }
+    function mulberry32(seed) {
+      return () => {
+        let t = seed += 1831565813;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+    function seededRandom(str) {
+      const seed = str ? xfnv1a(str)() : Math.floor(Math.random() * 1e10);
+      return mulberry32(seed);
+    }
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronExpressionParser.js
+var require_CronExpressionParser = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronExpressionParser.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronExpressionParser = exports.DayOfWeek = exports.Months = exports.CronUnit = exports.PredefinedExpressions = void 0;
+    var CronFieldCollection_1 = require_CronFieldCollection();
+    var CronExpression_1 = require_CronExpression();
+    var random_1 = require_random();
+    var fields_1 = require_fields();
+    var PredefinedExpressions;
+    (function(PredefinedExpressions2) {
+      PredefinedExpressions2["@yearly"] = "0 0 0 1 1 *";
+      PredefinedExpressions2["@annually"] = "0 0 0 1 1 *";
+      PredefinedExpressions2["@monthly"] = "0 0 0 1 * *";
+      PredefinedExpressions2["@weekly"] = "0 0 0 * * 0";
+      PredefinedExpressions2["@daily"] = "0 0 0 * * *";
+      PredefinedExpressions2["@hourly"] = "0 0 * * * *";
+      PredefinedExpressions2["@minutely"] = "0 * * * * *";
+      PredefinedExpressions2["@secondly"] = "* * * * * *";
+      PredefinedExpressions2["@weekdays"] = "0 0 0 * * 1-5";
+      PredefinedExpressions2["@weekends"] = "0 0 0 * * 0,6";
+    })(PredefinedExpressions || (exports.PredefinedExpressions = PredefinedExpressions = {}));
+    var CronUnit;
+    (function(CronUnit2) {
+      CronUnit2["Second"] = "Second";
+      CronUnit2["Minute"] = "Minute";
+      CronUnit2["Hour"] = "Hour";
+      CronUnit2["DayOfMonth"] = "DayOfMonth";
+      CronUnit2["Month"] = "Month";
+      CronUnit2["DayOfWeek"] = "DayOfWeek";
+    })(CronUnit || (exports.CronUnit = CronUnit = {}));
+    var Months;
+    (function(Months2) {
+      Months2[Months2["jan"] = 1] = "jan";
+      Months2[Months2["feb"] = 2] = "feb";
+      Months2[Months2["mar"] = 3] = "mar";
+      Months2[Months2["apr"] = 4] = "apr";
+      Months2[Months2["may"] = 5] = "may";
+      Months2[Months2["jun"] = 6] = "jun";
+      Months2[Months2["jul"] = 7] = "jul";
+      Months2[Months2["aug"] = 8] = "aug";
+      Months2[Months2["sep"] = 9] = "sep";
+      Months2[Months2["oct"] = 10] = "oct";
+      Months2[Months2["nov"] = 11] = "nov";
+      Months2[Months2["dec"] = 12] = "dec";
+    })(Months || (exports.Months = Months = {}));
+    var DayOfWeek;
+    (function(DayOfWeek2) {
+      DayOfWeek2[DayOfWeek2["sun"] = 0] = "sun";
+      DayOfWeek2[DayOfWeek2["mon"] = 1] = "mon";
+      DayOfWeek2[DayOfWeek2["tue"] = 2] = "tue";
+      DayOfWeek2[DayOfWeek2["wed"] = 3] = "wed";
+      DayOfWeek2[DayOfWeek2["thu"] = 4] = "thu";
+      DayOfWeek2[DayOfWeek2["fri"] = 5] = "fri";
+      DayOfWeek2[DayOfWeek2["sat"] = 6] = "sat";
+    })(DayOfWeek || (exports.DayOfWeek = DayOfWeek = {}));
+    var CronExpressionParser3 = class _CronExpressionParser {
+      /**
+       * Parses a cron expression and returns a CronExpression object.
+       * @param {string} expression - The cron expression to parse.
+       * @param {CronExpressionOptions} [options={}] - The options to use when parsing the expression.
+       * @param {boolean} [options.strict=false] - If true, will throw an error if the expression contains both dayOfMonth and dayOfWeek.
+       * @param {CronDate} [options.currentDate=new CronDate(undefined, 'UTC')] - The date to use when calculating the next/previous occurrence.
+       *
+       * @returns {CronExpression} A CronExpression object.
+       */
+      static parse(expression, options = {}) {
+        const { strict = false, hashSeed } = options;
+        const rand = (0, random_1.seededRandom)(hashSeed);
+        expression = PredefinedExpressions[expression] || expression;
+        const rawFields = _CronExpressionParser.#getRawFields(expression, strict);
+        if (!(rawFields.dayOfMonth === "*" || rawFields.dayOfWeek === "*" || !strict)) {
+          throw new Error("Cannot use both dayOfMonth and dayOfWeek together in strict mode!");
+        }
+        const second = _CronExpressionParser.#parseField(CronUnit.Second, rawFields.second, fields_1.CronSecond.constraints, rand);
+        const minute = _CronExpressionParser.#parseField(CronUnit.Minute, rawFields.minute, fields_1.CronMinute.constraints, rand);
+        const hour = _CronExpressionParser.#parseField(CronUnit.Hour, rawFields.hour, fields_1.CronHour.constraints, rand);
+        const month = _CronExpressionParser.#parseField(CronUnit.Month, rawFields.month, fields_1.CronMonth.constraints, rand);
+        const dayOfMonth = _CronExpressionParser.#parseField(CronUnit.DayOfMonth, rawFields.dayOfMonth, fields_1.CronDayOfMonth.constraints, rand);
+        const { dayOfWeek: _dayOfWeek, nthDayOfWeek } = _CronExpressionParser.#parseNthDay(rawFields.dayOfWeek);
+        const dayOfWeek = _CronExpressionParser.#parseField(CronUnit.DayOfWeek, _dayOfWeek, fields_1.CronDayOfWeek.constraints, rand);
+        const fields = new CronFieldCollection_1.CronFieldCollection({
+          second: new fields_1.CronSecond(second, { rawValue: rawFields.second }),
+          minute: new fields_1.CronMinute(minute, { rawValue: rawFields.minute }),
+          hour: new fields_1.CronHour(hour, { rawValue: rawFields.hour }),
+          dayOfMonth: new fields_1.CronDayOfMonth(dayOfMonth, { rawValue: rawFields.dayOfMonth }),
+          month: new fields_1.CronMonth(month, { rawValue: rawFields.month }),
+          dayOfWeek: new fields_1.CronDayOfWeek(dayOfWeek, { rawValue: rawFields.dayOfWeek, nthDayOfWeek })
+        });
+        return new CronExpression_1.CronExpression(fields, { ...options, expression });
+      }
+      /**
+       * Get the raw fields from a cron expression.
+       * @param {string} expression - The cron expression to parse.
+       * @param {boolean} strict - If true, will throw an error if the expression contains both dayOfMonth and dayOfWeek.
+       * @private
+       * @returns {RawCronFields} The raw fields.
+       */
+      static #getRawFields(expression, strict) {
+        if (strict && !expression.length) {
+          throw new Error("Invalid cron expression");
+        }
+        expression = expression || "0 * * * * *";
+        const atoms = expression.trim().split(/\s+/);
+        if (strict && atoms.length < 6) {
+          throw new Error("Invalid cron expression, expected 6 fields");
+        }
+        if (atoms.length > 6) {
+          throw new Error("Invalid cron expression, too many fields");
+        }
+        const defaults = ["*", "*", "*", "*", "*", "0"];
+        if (atoms.length < defaults.length) {
+          atoms.unshift(...defaults.slice(atoms.length));
+        }
+        const [second, minute, hour, dayOfMonth, month, dayOfWeek] = atoms;
+        return { second, minute, hour, dayOfMonth, month, dayOfWeek };
+      }
+      /**
+       * Parse a field from a cron expression.
+       * @param {CronUnit} field - The field to parse.
+       * @param {string} value - The value of the field.
+       * @param {CronConstraints} constraints - The constraints for the field.
+       * @private
+       * @returns {(number | string)[]} The parsed field.
+       */
+      static #parseField(field, value, constraints, rand) {
+        if (field === CronUnit.Month || field === CronUnit.DayOfWeek) {
+          value = value.replace(/[a-z]{3}/gi, (match) => {
+            match = match.toLowerCase();
+            const replacer = Months[match] || DayOfWeek[match];
+            if (replacer === void 0) {
+              throw new Error(`Validation error, cannot resolve alias "${match}"`);
+            }
+            return replacer.toString();
+          });
+        }
+        if (!constraints.validChars.test(value)) {
+          throw new Error(`Invalid characters, got value: ${value}`);
+        }
+        value = this.#parseWildcard(value, constraints);
+        value = this.#parseHashed(value, constraints, rand);
+        return this.#parseSequence(field, value, constraints);
+      }
+      /**
+       * Parse a wildcard from a cron expression.
+       * @param {string} value - The value to parse.
+       * @param {CronConstraints} constraints - The constraints for the field.
+       * @private
+       */
+      static #parseWildcard(value, constraints) {
+        return value.replace(/[*?]/g, constraints.min + "-" + constraints.max);
+      }
+      /**
+       * Parse a hashed value from a cron expression.
+       * @param {string} value - The value to parse.
+       * @param {CronConstraints} constraints - The constraints for the field.
+       * @param {PRNG} rand - The random number generator to use.
+       * @private
+       */
+      static #parseHashed(value, constraints, rand) {
+        const randomValue = rand();
+        return value.replace(/H(?:\((\d+)-(\d+)\))?(?:\/(\d+))?/g, (_, min, max, step) => {
+          if (min && max && step) {
+            const minNum = parseInt(min, 10);
+            const maxNum = parseInt(max, 10);
+            const stepNum = parseInt(step, 10);
+            if (minNum > maxNum) {
+              throw new Error(`Invalid range: ${minNum}-${maxNum}, min > max`);
+            }
+            if (stepNum <= 0) {
+              throw new Error(`Invalid step: ${stepNum}, must be positive`);
+            }
+            const minStart = Math.max(minNum, constraints.min);
+            const offset = Math.floor(randomValue * stepNum);
+            const values = [];
+            for (let i = Math.floor(minStart / stepNum) * stepNum + offset; i <= maxNum; i += stepNum) {
+              if (i >= minStart) {
+                values.push(i);
+              }
+            }
+            return values.join(",");
+          } else if (min && max) {
+            const minNum = parseInt(min, 10);
+            const maxNum = parseInt(max, 10);
+            if (minNum > maxNum) {
+              throw new Error(`Invalid range: ${minNum}-${maxNum}, min > max`);
+            }
+            return String(Math.floor(randomValue * (maxNum - minNum + 1)) + minNum);
+          } else if (step) {
+            const stepNum = parseInt(step, 10);
+            if (stepNum <= 0) {
+              throw new Error(`Invalid step: ${stepNum}, must be positive`);
+            }
+            const offset = Math.floor(randomValue * stepNum);
+            const values = [];
+            for (let i = Math.floor(constraints.min / stepNum) * stepNum + offset; i <= constraints.max; i += stepNum) {
+              if (i >= constraints.min) {
+                values.push(i);
+              }
+            }
+            return values.join(",");
+          } else {
+            return String(Math.floor(randomValue * (constraints.max - constraints.min + 1) + constraints.min));
+          }
+        });
+      }
+      /**
+       * Parse a sequence from a cron expression.
+       * @param {CronUnit} field - The field to parse.
+       * @param {string} val - The sequence to parse.
+       * @param {CronConstraints} constraints - The constraints for the field.
+       * @private
+       */
+      static #parseSequence(field, val, constraints) {
+        const stack = [];
+        function handleResult2(result, constraints2) {
+          if (Array.isArray(result)) {
+            stack.push(...result);
+          } else {
+            if (_CronExpressionParser.#isValidConstraintChar(constraints2, result)) {
+              stack.push(result);
+            } else {
+              const v = parseInt(result.toString(), 10);
+              const isValid2 = v >= constraints2.min && v <= constraints2.max;
+              if (!isValid2) {
+                throw new Error(`Constraint error, got value ${result} expected range ${constraints2.min}-${constraints2.max}`);
+              }
+              stack.push(field === CronUnit.DayOfWeek ? v % 7 : result);
+            }
+          }
+        }
+        const atoms = val.split(",");
+        atoms.forEach((atom) => {
+          if (!(atom.length > 0)) {
+            throw new Error("Invalid list value format");
+          }
+          handleResult2(_CronExpressionParser.#parseRepeat(field, atom, constraints), constraints);
+        });
+        return stack;
+      }
+      /**
+       * Parse repeat from a cron expression.
+       * @param {CronUnit} field - The field to parse.
+       * @param {string} val - The repeat to parse.
+       * @param {CronConstraints} constraints - The constraints for the field.
+       * @private
+       * @returns {(number | string)[]} The parsed repeat.
+       */
+      static #parseRepeat(field, val, constraints) {
+        const atoms = val.split("/");
+        if (atoms.length > 2) {
+          throw new Error(`Invalid repeat: ${val}`);
+        }
+        if (atoms.length === 2) {
+          if (!isNaN(parseInt(atoms[0], 10))) {
+            atoms[0] = `${atoms[0]}-${constraints.max}`;
+          }
+          return _CronExpressionParser.#parseRange(field, atoms[0], parseInt(atoms[1], 10), constraints);
+        }
+        return _CronExpressionParser.#parseRange(field, val, 1, constraints);
+      }
+      /**
+       * Validate a cron range.
+       * @param {number} min - The minimum value of the range.
+       * @param {number} max - The maximum value of the range.
+       * @param {CronConstraints} constraints - The constraints for the field.
+       * @private
+       * @returns {void}
+       * @throws {Error} Throws an error if the range is invalid.
+       */
+      static #validateRange(min, max, constraints) {
+        const isValid2 = !isNaN(min) && !isNaN(max) && min >= constraints.min && max <= constraints.max;
+        if (!isValid2) {
+          throw new Error(`Constraint error, got range ${min}-${max} expected range ${constraints.min}-${constraints.max}`);
+        }
+        if (min > max) {
+          throw new Error(`Invalid range: ${min}-${max}, min(${min}) > max(${max})`);
+        }
+      }
+      /**
+       * Validate a cron repeat interval.
+       * @param {number} repeatInterval - The repeat interval to validate.
+       * @private
+       * @returns {void}
+       * @throws {Error} Throws an error if the repeat interval is invalid.
+       */
+      static #validateRepeatInterval(repeatInterval) {
+        if (!(!isNaN(repeatInterval) && repeatInterval > 0)) {
+          throw new Error(`Constraint error, cannot repeat at every ${repeatInterval} time.`);
+        }
+      }
+      /**
+       * Create a range from a cron expression.
+       * @param {CronUnit} field - The field to parse.
+       * @param {number} min - The minimum value of the range.
+       * @param {number} max - The maximum value of the range.
+       * @param {number} repeatInterval - The repeat interval of the range.
+       * @private
+       * @returns {number[]} The created range.
+       */
+      static #createRange(field, min, max, repeatInterval) {
+        const stack = [];
+        if (field === CronUnit.DayOfWeek && max % 7 === 0) {
+          stack.push(0);
+        }
+        for (let index = min; index <= max; index += repeatInterval) {
+          if (stack.indexOf(index) === -1) {
+            stack.push(index);
+          }
+        }
+        return stack;
+      }
+      /**
+       * Parse a range from a cron expression.
+       * @param {CronUnit} field - The field to parse.
+       * @param {string} val - The range to parse.
+       * @param {number} repeatInterval - The repeat interval of the range.
+       * @param {CronConstraints} constraints - The constraints for the field.
+       * @private
+       * @returns {number[] | string[] | number | string} The parsed range.
+       */
+      static #parseRange(field, val, repeatInterval, constraints) {
+        const atoms = val.split("-");
+        if (atoms.length <= 1) {
+          return isNaN(+val) ? val : +val;
+        }
+        const [min, max] = atoms.map((num) => parseInt(num, 10));
+        this.#validateRange(min, max, constraints);
+        this.#validateRepeatInterval(repeatInterval);
+        return this.#createRange(field, min, max, repeatInterval);
+      }
+      /**
+       * Parse a cron expression.
+       * @param {string} val - The cron expression to parse.
+       * @private
+       * @returns {string} The parsed cron expression.
+       */
+      static #parseNthDay(val) {
+        const atoms = val.split("#");
+        if (atoms.length <= 1) {
+          return { dayOfWeek: atoms[0] };
+        }
+        const nthValue = +atoms[atoms.length - 1];
+        const matches = val.match(/([,-/])/);
+        if (matches !== null) {
+          throw new Error(`Constraint error, invalid dayOfWeek \`#\` and \`${matches?.[0]}\` special characters are incompatible`);
+        }
+        if (!(atoms.length <= 2 && !isNaN(nthValue) && nthValue >= 1 && nthValue <= 5)) {
+          throw new Error("Constraint error, invalid dayOfWeek occurrence number (#)");
+        }
+        return { dayOfWeek: atoms[0], nthDayOfWeek: nthValue };
+      }
+      /**
+       * Checks if a character is valid for a field.
+       * @param {CronConstraints} constraints - The constraints for the field.
+       * @param {string | number} value - The value to check.
+       * @private
+       * @returns {boolean} Whether the character is valid for the field.
+       */
+      static #isValidConstraintChar(constraints, value) {
+        return constraints.chars.some((char) => value.toString().includes(char));
+      }
+    };
+    exports.CronExpressionParser = CronExpressionParser3;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronFileParser.js
+var require_CronFileParser = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/CronFileParser.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports && exports.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronFileParser = void 0;
+    var CronExpressionParser_1 = require_CronExpressionParser();
+    var CronFileParser = class _CronFileParser {
+      /**
+       * Parse a crontab file asynchronously
+       * @param filePath Path to crontab file
+       * @returns Promise resolving to parse results
+       * @throws If file cannot be read
+       */
+      static async parseFile(filePath) {
+        const { readFile } = await Promise.resolve().then(() => __importStar(__require("fs/promises")));
+        const data = await readFile(filePath, "utf8");
+        return _CronFileParser.#parseContent(data);
+      }
+      /**
+       * Parse a crontab file synchronously
+       * @param filePath Path to crontab file
+       * @returns Parse results
+       * @throws If file cannot be read
+       */
+      static parseFileSync(filePath) {
+        const { readFileSync } = __require("fs");
+        const data = readFileSync(filePath, "utf8");
+        return _CronFileParser.#parseContent(data);
+      }
+      /**
+       * Internal method to parse crontab file content
+       * @private
+       */
+      static #parseContent(data) {
+        const blocks = data.split("\n");
+        const result = {
+          variables: {},
+          expressions: [],
+          errors: {}
+        };
+        for (const block of blocks) {
+          const entry = block.trim();
+          if (entry.length === 0 || entry.startsWith("#")) {
+            continue;
+          }
+          const variableMatch = entry.match(/^(.*)=(.*)$/);
+          if (variableMatch) {
+            const [, key, value] = variableMatch;
+            result.variables[key] = value.replace(/["']/g, "");
+            continue;
+          }
+          try {
+            const parsedEntry = _CronFileParser.#parseEntry(entry);
+            result.expressions.push(parsedEntry.interval);
+          } catch (err) {
+            result.errors[entry] = err;
+          }
+        }
+        return result;
+      }
+      /**
+       * Parse a single crontab entry
+       * @private
+       */
+      static #parseEntry(entry) {
+        const atoms = entry.split(" ");
+        return {
+          interval: CronExpressionParser_1.CronExpressionParser.parse(atoms.slice(0, 5).join(" ")),
+          command: atoms.slice(5, atoms.length)
+        };
+      }
+    };
+    exports.CronFileParser = CronFileParser;
+  }
+});
+
+// node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/index.js
+var require_dist2 = __commonJS({
+  "node_modules/.pnpm/cron-parser@5.5.0/node_modules/cron-parser/dist/index.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p)) __createBinding(exports2, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.CronFileParser = exports.CronExpressionParser = exports.CronExpression = exports.CronFieldCollection = exports.CronDate = void 0;
+    var CronExpressionParser_1 = require_CronExpressionParser();
+    var CronDate_1 = require_CronDate();
+    Object.defineProperty(exports, "CronDate", { enumerable: true, get: function() {
+      return CronDate_1.CronDate;
+    } });
+    var CronFieldCollection_1 = require_CronFieldCollection();
+    Object.defineProperty(exports, "CronFieldCollection", { enumerable: true, get: function() {
+      return CronFieldCollection_1.CronFieldCollection;
+    } });
+    var CronExpression_1 = require_CronExpression();
+    Object.defineProperty(exports, "CronExpression", { enumerable: true, get: function() {
+      return CronExpression_1.CronExpression;
+    } });
+    var CronExpressionParser_2 = require_CronExpressionParser();
+    Object.defineProperty(exports, "CronExpressionParser", { enumerable: true, get: function() {
+      return CronExpressionParser_2.CronExpressionParser;
+    } });
+    var CronFileParser_1 = require_CronFileParser();
+    Object.defineProperty(exports, "CronFileParser", { enumerable: true, get: function() {
+      return CronFileParser_1.CronFileParser;
+    } });
+    __exportStar(require_fields(), exports);
+    exports.default = CronExpressionParser_1.CronExpressionParser;
   }
 });
 
@@ -36168,7 +37557,7 @@ var require_line_counter = __commonJS({
 });
 
 // node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/parser.js
-var require_parser2 = __commonJS({
+var require_parser = __commonJS({
   "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/parse/parser.js"(exports) {
     "use strict";
     var node_process = __require("process");
@@ -37051,7 +38440,7 @@ var require_public_api = __commonJS({
     var log = require_log();
     var identity = require_identity();
     var lineCounter = require_line_counter();
-    var parser3 = require_parser2();
+    var parser = require_parser();
     function parseOptions(options) {
       const prettyErrors = options.prettyErrors !== false;
       const lineCounter$1 = options.lineCounter || prettyErrors && new lineCounter.LineCounter() || null;
@@ -37059,7 +38448,7 @@ var require_public_api = __commonJS({
     }
     function parseAllDocuments(source, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
-      const parser$1 = new parser3.Parser(lineCounter2?.addNewLine);
+      const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
       const docs = Array.from(composer$1.compose(parser$1.parse(source)));
       if (prettyErrors && lineCounter2)
@@ -37073,7 +38462,7 @@ var require_public_api = __commonJS({
     }
     function parseDocument4(source, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
-      const parser$1 = new parser3.Parser(lineCounter2?.addNewLine);
+      const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
       let doc = null;
       for (const _doc of composer$1.compose(parser$1.parse(source), true, source.length)) {
@@ -37139,7 +38528,7 @@ var require_public_api = __commonJS({
 });
 
 // node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/index.js
-var require_dist2 = __commonJS({
+var require_dist3 = __commonJS({
   "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/dist/index.js"(exports) {
     "use strict";
     var composer = require_composer();
@@ -37155,7 +38544,7 @@ var require_dist2 = __commonJS({
     var cst = require_cst();
     var lexer = require_lexer();
     var lineCounter = require_line_counter();
-    var parser3 = require_parser2();
+    var parser = require_parser();
     var publicApi = require_public_api();
     var visit = require_visit();
     exports.Composer = composer.Composer;
@@ -37180,7 +38569,7 @@ var require_dist2 = __commonJS({
     exports.CST = cst;
     exports.Lexer = lexer.Lexer;
     exports.LineCounter = lineCounter.LineCounter;
-    exports.Parser = parser3.Parser;
+    exports.Parser = parser.Parser;
     exports.parse = publicApi.parse;
     exports.parseAllDocuments = publicApi.parseAllDocuments;
     exports.parseDocument = publicApi.parseDocument;
@@ -49555,7 +50944,7 @@ function parseWorkflow(absPath) {
 }
 
 // src/checks/ci/rules.ts
-var import_cron_parser = __toESM(require_parser(), 1);
+var import_cron_parser = __toESM(require_dist2(), 1);
 
 // src/checks/ci/runnerPricing.ts
 init_zod();
@@ -49799,10 +51188,9 @@ function computeCronRunsPerDay(cronExpr) {
   try {
     const startBefore = /* @__PURE__ */ new Date("2023-12-31T23:59:00Z");
     const end = /* @__PURE__ */ new Date("2024-01-02T00:00:00Z");
-    const it = import_cron_parser.default.parseExpression(cronExpr, {
+    const it = import_cron_parser.CronExpressionParser.parse(cronExpr, {
       currentDate: startBefore,
-      endDate: end,
-      iterator: false
+      endDate: end
     });
     let count = 0;
     try {
@@ -49823,9 +51211,8 @@ function computeCronRunsPerDay(cronExpr) {
 function minIntervalMinutes(cronExpr) {
   try {
     const start = /* @__PURE__ */ new Date("2023-12-31T23:59:00Z");
-    const it = import_cron_parser.default.parseExpression(cronExpr, {
-      currentDate: start,
-      iterator: false
+    const it = import_cron_parser.CronExpressionParser.parse(cronExpr, {
+      currentDate: start
     });
     const times = [];
     for (let i = 0; i < 10; i++) {
@@ -50256,7 +51643,7 @@ async function findCronHits(workspaceDir) {
 }
 
 // src/checks/cron/rules.ts
-var import_cron_parser2 = __toESM(require_parser(), 1);
+var import_cron_parser2 = __toESM(require_dist2(), 1);
 var RULE_TOO_FREQUENT = "cron/too-frequent";
 var RULE_OVERLAP = "cron/overlap";
 var RULE_UNBOUNDED = "cron/unbounded";
@@ -50264,7 +51651,7 @@ var PROVIDER = "cron";
 function minIntervalMinutes2(expr, samples = 5) {
   let interval;
   try {
-    interval = import_cron_parser2.default.parseExpression(expr, { utc: true });
+    interval = import_cron_parser2.CronExpressionParser.parse(expr, { tz: "UTC" });
   } catch {
     return null;
   }
@@ -50291,7 +51678,7 @@ function minIntervalMinutes2(expr, samples = 5) {
 }
 function nextOccurrenceMs(expr) {
   try {
-    const interval = import_cron_parser2.default.parseExpression(expr, { utc: true });
+    const interval = import_cron_parser2.CronExpressionParser.parse(expr, { tz: "UTC" });
     const next = interval.next();
     return next.getTime();
   } catch {
@@ -53086,7 +54473,7 @@ import fs18 from "node:fs";
 import path9 from "node:path";
 
 // src/fix/fixers/pathsIgnore.ts
-var import_yaml = __toESM(require_dist2(), 1);
+var import_yaml = __toESM(require_dist3(), 1);
 var TRIGGERS = ["push", "pull_request"];
 function hasRequiredPathsIgnore(node) {
   if (!(0, import_yaml.isMap)(node)) return false;
@@ -53133,7 +54520,7 @@ var pathsIgnoreFixer = (filePath, content) => {
 };
 
 // src/fix/fixers/concurrency.ts
-var import_yaml2 = __toESM(require_dist2(), 1);
+var import_yaml2 = __toESM(require_dist3(), 1);
 function hasAnyConcurrency(doc) {
   return (0, import_yaml2.isMap)(doc.get("concurrency", true));
 }
@@ -53155,7 +54542,7 @@ var concurrencyFixer = (filePath, content) => {
 };
 
 // src/fix/fixers/timeout.ts
-var import_yaml3 = __toESM(require_dist2(), 1);
+var import_yaml3 = __toESM(require_dist3(), 1);
 var DEPLOY_SIGNAL_RE = /\b(helm|rollout|terraform apply|docker build|deploy)\b/i;
 function collectRunStrings(jobValue) {
   if (!(0, import_yaml3.isMap)(jobValue)) return [];
