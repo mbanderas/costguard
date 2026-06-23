@@ -8,3 +8,7 @@ workspaces.json
 coverage/
 reports/
 .claude/
+
+# Self-hosted GitHub Actions runner (do not commit)
+/actions-runner/
+.github/workflows/*.bak
