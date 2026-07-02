@@ -73,7 +73,7 @@
   "devDependencies": {
     "@eslint/js": "^10",
     "@types/js-yaml": "^4",
-    "@types/node": "^25",
+    "@types/node": "^26",
     "esbuild": "0.28.1",
     "eslint": "^10",
     "tsx": "^4",
